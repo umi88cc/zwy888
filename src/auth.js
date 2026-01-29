@@ -7,145 +7,118 @@
 */
 
 import { Hono } from 'hono';
-import { sign } from 'hono/jwt';
+import { cors } from 'hono/cors';
+import { jwt } from 'hono/jwt';
+import auth from './auth'; // 引入同目录下的 auth.js
 
-const auth = new Hono();
+const app = new Hono();
 
-// --- 辅助函数：密码加密 (SHA-256) ---
-async function hashPassword(password) {
-  const msgBuffer = new TextEncoder().encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+// --- 1. 全局中间件 ---
+// 允许跨域 (CORS)
+app.use('/*', cors());
 
-// --- 1. 获取验证码接口 (50以内加减法) ---
-auth.get('/captcha', async (c) => {
-  // 生成两个 0-25 之间的随机数
-  const num1 = Math.floor(Math.random() * 25);
-  const num2 = Math.floor(Math.random() * 25);
-  const isAdd = Math.random() > 0.5;
-  
-  let question, answer;
-  if (isAdd) {
-    question = `${num1} + ${num2} = ?`;
-    answer = num1 + num2;
-  } else {
-    // 减法确保大减小
-    const max = Math.max(num1, num2);
-    const min = Math.min(num1, num2);
-    question = `${max} - ${min} = ?`;
-    answer = max - min;
+// --- 2. 挂载子路由 ---
+// 所有 /api/auth/* 的请求都交给 auth.js 处理
+app.route('/api/auth', auth);
+
+// --- 3. 受保护路由中间件 (JWT) ---
+// 只要是访问 /api/user/* 开头的接口，必须带 Token
+app.use('/api/user/*', async (c, next) => {
+  const jwtMiddleware = jwt({ secret: c.env.JWT_SECRET });
+  return jwtMiddleware(c, next);
+});
+
+
+// --- 4. 主页路由 (前端入口) ---
+app.get('/', async (c) => {
+  const url = new URL(c.req.url);
+
+  // 如果请求 API 根目录
+  if (url.pathname.startsWith('/api')) {
+    return c.json({ status: 'Umi Blog API Running', version: '1.0' });
   }
 
-  // 生成唯一Key (有效期300秒)
-  const key = `captcha_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  await c.env.KV.put(key, answer.toString(), { expirationTtl: 300 });
+  // 返回简单的测试HTML (后续替换为 themes/zwy888/index.html)
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="UTF-8">
+      <title>优米博客 - UMI88.CC</title>
+      <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        .box { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 400px; margin: 0 auto; }
+        .btn { display: inline-block; margin: 10px; padding: 10px 20px; background: #333; color: #fff; text-decoration: none; border-radius: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h1>优米博客开发中</h1>
+        <p>Worker 状态: <span style="color:green">运行正常</span></p>
+        <p>数据库: <span style="color:green">已连接</span></p>
+        <hr>
+        <a href="/api/auth/captcha" target="_blank" class="btn">测试验证码API</a>
+        <a href="/api/test-db" target="_blank" class="btn">测试数据库连通性</a>
+      </div>
+    </body>
+    </html>
+  `);
+});
 
-  return c.json({ 
-    success: true, 
-    key: key, 
-    question: question 
+// --- 5. 数据库测试接口 ---
+app.get('/api/test-db', async (c) => {
+  try {
+    const result = await c.env.DB.prepare('SELECT * FROM users LIMIT 1').first();
+    return c.json({ 
+      success: true, 
+      msg: '数据库连接正常', 
+      data: result || '暂无用户(这是正常的)' 
+    });
+  } catch (e) {
+    return c.json({ success: false, error: e.message }, 500);
+  }
+});
+
+// --- 6. 图片上传接口 (R2) ---
+app.post('/api/upload', async (c) => {
+  // TODO: 这里后续要加上 jwt 验证，只允许管理员上传
+  const body = await c.req.parseBody();
+  const file = body['file'];
+
+  if (!file) {
+    return c.json({ error: '请选择文件' }, 400);
+  }
+
+  // 自动命名: images/时间戳_文件名
+  const fileName = `images/${Date.now()}_${file.name}`;
+
+  try {
+    await c.env.IMG_BUCKET.put(fileName, file);
+    return c.json({ 
+      success: true, 
+      url: `/images/${fileName}` 
+    });
+  } catch (e) {
+    return c.json({ error: '上传失败: ' + e.message }, 500);
+  }
+});
+
+// --- 7. 图片查看代理 (解决R2访问问题) ---
+app.get('/images/*', async (c) => {
+  const key = c.req.path.substring(1); // 去掉开头的 /
+  const object = await c.env.IMG_BUCKET.get(key);
+
+  if (!object) {
+    return c.text('404 Not Found', 404);
+  }
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('etag', object.httpEtag);
+
+  return new Response(object.body, {
+    headers,
   });
 });
 
-// --- 2. 注册接口 (自动识别首位管理员) ---
-auth.post('/register', async (c) => {
-  try {
-    const { username, password, qq, captchaKey, captchaAnswer } = await c.req.json();
-
-    // A. 验证码校验
-    const realAnswer = await c.env.KV.get(captchaKey);
-    if (!realAnswer || realAnswer !== captchaAnswer.toString()) {
-      return c.json({ success: false, message: '验证码错误或已失效' }, 400);
-    }
-    await c.env.KV.delete(captchaKey); // 用完即焚
-
-    // B. QQ号简单校验
-    if (!/^\d{5,12}$/.test(qq)) {
-      return c.json({ success: false, message: '请输入真实的QQ号' }, 400);
-    }
-
-    // C. 查重
-    const exist = await c.env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
-    if (exist) {
-      return c.json({ success: false, message: '该账号已被注册' }, 400);
-    }
-
-    // D. 自动设为管理员逻辑 (如果没有用户，则第一人为admin)
-    const userCount = await c.env.DB.prepare('SELECT COUNT(*) as count FROM users').first();
-    const isFirstUser = userCount.count === 0;
-    const role = isFirstUser ? 'admin' : 'user';
-    const vipLevel = isFirstUser ? 2 : 0; // 管理员默认SVIP
-
-    // E. 写入数据库
-    const passwordHash = await hashPassword(password);
-    const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-
-    await c.env.DB.prepare(
-      'INSERT INTO users (username, password_hash, qq_number, role, vip_level, ip_address) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(username, passwordHash, qq, role, vipLevel, ip).run();
-
-    return c.json({ success: true, message: '注册成功！' });
-
-  } catch (e) {
-    return c.json({ success: false, message: '注册异常: ' + e.message }, 500);
-  }
-});
-
-// --- 3. 登录接口 (含小黑屋检测) ---
-auth.post('/login', async (c) => {
-  try {
-    const { username, password, captchaKey, captchaAnswer } = await c.req.json();
-
-    // A. 验证码校验
-    const realAnswer = await c.env.KV.get(captchaKey);
-    if (!realAnswer || realAnswer !== captchaAnswer.toString()) {
-      return c.json({ success: false, message: '验证码错误' }, 400);
-    }
-    await c.env.KV.delete(captchaKey);
-
-    // B. 数据库查询用户
-    const user = await c.env.DB.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
-    if (!user) {
-      return c.json({ success: false, message: '账号不存在' }, 404);
-    }
-
-    // C. 小黑屋检测
-    if (user.is_banned === 1) {
-      return c.json({ success: false, message: '您的账号已被封禁 (小黑屋)，无法登录' }, 403);
-    }
-
-    // D. 密码比对
-    const inputHash = await hashPassword(password);
-    if (inputHash !== user.password_hash) {
-      return c.json({ success: false, message: '密码错误' }, 401);
-    }
-
-    // E. 签发 Token (JWT)
-    const payload = {
-      sub: user.id,
-      username: user.username,
-      role: user.role,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7天过期
-    };
-    const token = await sign(payload, c.env.JWT_SECRET);
-
-    return c.json({
-      success: true,
-      token: token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        vip_level: user.vip_level,
-        avatar: `http://q.qlogo.cn/headimg_dl?dst_uin=${user.qq_number}&spec=100`
-      }
-    });
-
-  } catch (e) {
-    return c.json({ success: false, message: '登录异常: ' + e.message }, 500);
-  }
-});
-
-export default auth;
+export default app;
