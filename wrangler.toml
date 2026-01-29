@@ -6,7 +6,7 @@ compatibility_date = "2026-01-28"
 # 这一行告诉 Cloudflare：我的网页文件都在 themes/zwy888 目录里
 # 这样访问网址时，会自动加载 index.html 和 css/style.css
 [assets]
-directory = "themes/zwy888"
+directory = "themes"
 binding = "ASSETS"
 
 # --- 2. 路由配置 (已修复) ---
