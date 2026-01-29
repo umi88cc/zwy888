@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 文章页专用样式 */
         .post-detail { background: #fff; border-radius: 12px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .post-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
         .post-header h1 { font-size: 1.8rem; margin-bottom: 10px; color: #333; }
@@ -63,15 +62,66 @@
 
     <input type="hidden" id="postId" value="{{id}}">
 
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeModal('authModal')">×</button>
+            <div class="tab-header">
+                <span class="active" onclick="switchTab('login')">登录</span>
+                <span onclick="switchTab('register')">注册</span>
+            </div>
+            <form id="loginForm" class="auth-form active">
+                <div class="input-group"><i class="fa-solid fa-user"></i><input type="text" name="username" placeholder="请输入账号" required></div>
+                <div class="input-group"><i class="fa-solid fa-lock"></i><input type="password" name="password" placeholder="请输入密码" required></div>
+                <div class="input-group captcha-group">
+                    <input type="text" name="captchaAnswer" placeholder="计算结果?" required>
+                    <span id="loginCaptchaQuestion" class="captcha-text">...</span>
+                    <input type="hidden" name="captchaKey" id="loginCaptchaKey">
+                </div>
+                <button type="submit" class="submit-btn">立即登录</button>
+            </form>
+            <form id="registerForm" class="auth-form">
+                <div class="input-group"><i class="fa-solid fa-user"></i><input type="text" name="username" placeholder="设置账号" required></div>
+                <div class="input-group"><i class="fa-solid fa-lock"></i><input type="password" name="password" placeholder="设置密码" required></div>
+                <div class="input-group"><i class="fa-brands fa-qq"></i><input type="number" name="qq" placeholder="QQ号" required></div>
+                <div class="input-group captcha-group">
+                    <input type="text" name="captchaAnswer" placeholder="计算结果?" required>
+                    <span id="regCaptchaQuestion" class="captcha-text">...</span>
+                    <input type="hidden" name="captchaKey" id="regCaptchaKey">
+                </div>
+                <button type="submit" class="submit-btn register-btn">立即注册</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="payModal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeModal('payModal')">×</button>
+            <div class="pay-header">
+                <h3><i class="fa-brands fa-alipay alipay-logo"></i> 支付宝当面付</h3>
+            </div>
+            <div class="pay-amount" id="payAmount">¥0.00</div>
+            
+            <div class="qr-container" id="payQrCode">
+                Loading...
+            </div>
+            
+            <div class="pay-tip">
+                <p>请使用支付宝扫一扫</p>
+                <p>支付成功后页面将自动刷新</p>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/main.js"></script>
     <script>
-        // 简单的购买触发逻辑
+        // 页面内联调用
         function buyPost() {
-            // 调用 main.js 里的通用支付函数
-            createOrder('post', document.getElementById('postId').value);
+            const id = document.getElementById('postId').value;
+            window.createOrder('post', id);
         }
         function buyVip() {
-            alert('请在个人中心充值会员');
+            // 这里可以扩展为弹出选择 VIP 套餐
+            window.createOrder('vip_month', 0);
         }
     </script>
 </body>
