@@ -1,42 +1,27 @@
-/**
-* 优米博客 - 后台管理 (含评论管理)
-*/
 import { Hono } from 'hono';
 const admin = new Hono();
 
 admin.use('*', async (c, next) => {
-  const payload = c.get('jwtPayload');
-  if (!payload) return c.json({ error: '未授权' }, 401);
+  const payload = c.get('jwtPayload'); if (!payload) return c.json({ error: '未授权' }, 401);
   const user = await c.env.DB.prepare('SELECT role FROM users WHERE id = ?').bind(payload.sub).first();
-  if (!user || user.role !== 'admin') return c.json({ error: '无权访问' }, 403);
+  if (!user || user.role !== 'admin') return c.json({ error: '无权' }, 403);
   await next();
 });
 
-// --- 评论管理 ---
-admin.get('/comments', async (c) => {
-  const comments = await c.env.DB.prepare(`
-    SELECT c.id, c.content, c.created_at, u.username, p.title 
-    FROM comments c 
-    LEFT JOIN users u ON c.user_id = u.id 
-    LEFT JOIN posts p ON c.post_id = p.id 
-    ORDER BY c.id DESC LIMIT 50
-  `).all();
-  return c.json({ success: true, data: comments.results });
-});
+// Settings
+admin.get('/settings', async (c) => { const s = await c.env.KV.get('site_settings', { type: 'json' }) || {}; return c.json({ success: true, data: s }); });
+admin.post('/settings/save', async (c) => { const b = await c.req.json(); const o = await c.env.KV.get('site_settings', { type: 'json' }) || {}; await c.env.KV.put('site_settings', JSON.stringify({ ...o, ...b })); return c.json({ success: true }); });
 
-admin.post('/comments/delete', async (c) => {
-  const { id } = await c.req.json();
-  await c.env.DB.prepare('DELETE FROM comments WHERE id=?').bind(id).run();
-  return c.json({ success: true, message: '评论已删除' });
-});
+// Users
+admin.get('/users', async (c) => { const u = await c.env.DB.prepare('SELECT id, username, qq_number, role, vip_level, is_banned FROM users ORDER BY id DESC LIMIT 50').all(); return c.json({ success: true, data: u.results }); });
+admin.post('/users/add', async (c) => { const { username, password } = await c.req.json(); const msgBuffer = new TextEncoder().encode(password); const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer); const hashArray = Array.from(new Uint8Array(hashBuffer)); const ph = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); await c.env.DB.prepare('INSERT INTO users (username, password_hash, role, vip_level, qq_number) VALUES (?, ?, ?, ?, ?)').bind(username, ph, 'user', 0, '10000').run(); return c.json({ success: true }); });
 
-// ... (为了节省篇幅，这里请保留之前 admin.js 中关于 Users, Posts, Settings, Categories 的所有代码，只需把上面的 comments 部分替换/确认即可) ...
-// 强烈建议：将上次我给你的“全功能版 admin.js”再次复制一遍，确保所有功能都在。
+// Posts
+admin.get('/posts', async (c) => { const p = await c.env.DB.prepare('SELECT * FROM posts ORDER BY id DESC').all(); return c.json({ success: true, data: p.results }); });
+admin.post('/posts/save', async (c) => { const { id, title, content, slug, price, view_permission } = await c.req.json(); const now = Math.floor(Date.now() / 1000); if (id) { await c.env.DB.prepare('UPDATE posts SET title=?, content=?, slug=?, price=?, view_permission=? WHERE id=?').bind(title, content, slug, price, view_permission, id).run(); } else { await c.env.DB.prepare('INSERT INTO posts (title, content, slug, price, view_permission, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)').bind(title, content, slug, price, view_permission, 'published', now).run(); } return c.json({ success: true }); });
 
-// --- 必须保留的基础设置、用户、文章逻辑 ---
-// (此处省略，请使用上一次回复中的 admin.js 代码，它已经包含了所有必要的管理功能)
-// 只要确保上面的 /comments 接口存在即可。
+// Comments
+admin.get('/comments', async (c) => { const cm = await c.env.DB.prepare(`SELECT c.id, c.content, u.username, p.title FROM comments c LEFT JOIN users u ON c.user_id = u.id LEFT JOIN posts p ON c.post_id = p.id ORDER BY c.id DESC LIMIT 50`).all(); return c.json({ success: true, data: cm.results }); });
+admin.post('/comments/delete', async (c) => { const { id } = await c.req.json(); await c.env.DB.prepare('DELETE FROM comments WHERE id=?').bind(id).run(); return c.json({ success: true }); });
 
-// 为防止你混淆，这里提供一个简单版的 admin.js 结尾，请确保你有之前的完整代码
-// 如果没有，请告诉我，我再发一次完整的 admin.js
 export default admin;
