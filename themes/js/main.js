@@ -222,3 +222,122 @@ window.createOrder = async function(type, itemId) { /* 略，保持原支付逻�
 window.closeModal = closeModal;
 window.switchTab = switchTab;
 window.logout = logout;
+// ... (保留之前的 Auth, Pay, Page 逻辑) ...
+
+// --- 文章页逻辑 ---
+if (document.getElementById('postContent')) {
+    initPostPage();
+}
+
+async function initPostPage() {
+    const postId = document.getElementById('postId').value;
+    loadComments(postId);
+    checkLikeStatus(postId);
+    
+    // 检查是否登录，如果登录了，尝试刷新文章内容(解锁 VIP/回复可见)
+    const token = localStorage.getItem('umi_token');
+    if (token) {
+        document.getElementById('loginToComment').style.display = 'none';
+        document.getElementById('commentFormBox').style.display = 'block';
+        
+        // 尝试获取解锁后的内容
+        try {
+            const res = await fetch(`${API_BASE}/posts/content/${postId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('postContent').innerHTML = data.content;
+            }
+        } catch(e) { console.error('解锁失败', e); }
+    }
+}
+
+// 加载评论
+async function loadComments(postId) {
+    const list = document.getElementById('commentList');
+    try {
+        const res = await fetch(`${API_BASE}/comments/list/${postId}`);
+        const json = await res.json();
+        if (json.data.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:#ccc">暂无评论，快来抢沙发</div>';
+            return;
+        }
+        list.innerHTML = json.data.map(c => `
+            <div class="comment-item">
+                <img src="http://q.qlogo.cn/headimg_dl?dst_uin=${c.qq_number}&spec=100" class="comment-avatar">
+                <div class="comment-body">
+                    <div class="comment-user">
+                        ${c.username}
+                        ${c.vip_level > 0 ? `<span class="comment-vip-badge">VIP${c.vip_level}</span>` : ''}
+                    </div>
+                    <div class="comment-text">${escapeHtml(c.content)}</div>
+                    <div class="comment-time">${new Date(c.created_at * 1000).toLocaleString()}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) { list.innerHTML = '评论加载失败'; }
+}
+
+// 发送评论
+window.submitComment = async function(postId) {
+    const content = document.getElementById('commentContent').value;
+    const token = localStorage.getItem('umi_token');
+    if (!token) return openModal('auth');
+    
+    try {
+        const res = await fetch(`${API_BASE}/comments/add`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId, content })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('评论成功');
+            document.getElementById('commentContent').value = '';
+            loadComments(postId);
+            // 刷新页面以查看“回复可见”内容
+            setTimeout(() => location.reload(), 1000); 
+        } else {
+            alert(data.message || '失败');
+        }
+    } catch (e) { alert('网络错误'); }
+};
+
+// 点赞逻辑
+async function checkLikeStatus(postId) {
+    const token = localStorage.getItem('umi_token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    const res = await fetch(`${API_BASE}/comments/status/${postId}`, { headers });
+    const data = await res.json();
+    
+    document.getElementById('likeCount').innerText = data.likeCount;
+    if (data.hasLiked) {
+        const icon = document.getElementById('likeIcon');
+        icon.classList.remove('fa-regular');
+        icon.classList.add('fa-solid');
+        icon.parentElement.classList.add('liked');
+    }
+}
+
+window.toggleLike = async function(postId) {
+    const token = localStorage.getItem('umi_token');
+    if (!token) return openModal('auth');
+    
+    const res = await fetch(`${API_BASE}/comments/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId })
+    });
+    const data = await res.json();
+    if (data.success) {
+        checkLikeStatus(postId);
+    } else {
+        alert(data.error || '失败');
+    }
+};
+
+function escapeHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
