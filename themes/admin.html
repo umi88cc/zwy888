@@ -2,117 +2,223 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>后台管理 - 优米博客</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #f0f2f5; color: #333; display:block; min-height:auto; } /* 重置部分Flex */
-        .admin-layout { display: flex; min-height: 100vh; }
-        .sidebar { width: 240px; background: #001529; color: #fff; display: flex; flex-direction: column; }
-        .sidebar-header { height: 60px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; background: #002140; }
-        .nav-menu { flex: 1; padding-top: 20px; }
-        .nav-item { padding: 15px 25px; cursor: pointer; color: #a6adb4; display: flex; align-items: center; transition: 0.3s; }
-        .nav-item:hover, .nav-item.active { background: #1890ff; color: #fff; }
-        .nav-item i { margin-right: 10px; width: 20px; text-align: center; }
-        .main-content { flex: 1; padding: 20px; overflow-y: auto; }
-        .panel { display: none; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .panel.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-control { width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 4px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; color: #fff; font-size: 14px; }
-        .btn-primary { background: #1890ff; }
-        .btn-danger { background: #ff4d4f; }
-        .btn-success { background: #52c41a; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #f0f0f0; }
-        th { background: #fafafa; }
+        /* --- 后台专用重置与布局 --- */
+        body { background: #f3f4f6; color: #333; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: row; }
+        
+        /* 侧边栏 (响应式) */
+        .sidebar { 
+            width: 250px; background: #1e293b; color: #fff; 
+            display: flex; flex-direction: column; 
+            position: fixed; left: 0; top: 0; bottom: 0; z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header { 
+            height: 60px; display: flex; align-items: center; justify-content: center; 
+            font-size: 20px; font-weight: bold; background: #0f172a; border-bottom: 1px solid #334155;
+        }
+        .nav-menu { flex: 1; padding: 20px 0; overflow-y: auto; }
+        .nav-item { 
+            padding: 15px 25px; cursor: pointer; color: #94a3b8; 
+            display: flex; align-items: center; transition: 0.2s; font-size: 15px;
+        }
+        .nav-item:hover, .nav-item.active { background: #334155; color: #fff; border-left: 4px solid var(--primary-color); }
+        .nav-item i { margin-right: 12px; width: 20px; text-align: center; font-size: 18px; }
+
+        /* 主内容区 */
+        .main-content { 
+            flex: 1; margin-left: 250px; padding: 20px; 
+            height: 100vh; overflow-y: auto; 
+            transition: margin-left 0.3s ease;
+        }
+        
+        /* 顶部栏 (手机端显示菜单按钮) */
+        .top-bar { 
+            display: none; align-items: center; justify-content: space-between;
+            background: #fff; padding: 10px 20px; margin: -20px -20px 20px -20px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .menu-toggle { font-size: 24px; cursor: pointer; color: #333; }
+
+        /* 面板卡片 */
+        .panel { display: none; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); animation: fadeIn 0.3s; }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 20px; font-size: 1.5rem; color: #1e293b; }
+
+        /* 表单元素 */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #475569; }
+        .form-control { 
+            width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; 
+            font-size: 14px; transition: 0.2s; outline: none; box-sizing: border-box;
+        }
+        .form-control:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); }
+
+        /* 表格 (支持横向滚动) */
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        th { background: #f8fafc; font-weight: 600; color: #64748b; }
+        tr:hover { background: #f8fafc; }
+
+        /* 按钮组 */
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; color: #fff; font-size: 14px; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: #3b82f6; }
+        .btn-success { background: #10b981; }
+        .btn-danger { background: #ef4444; }
+        .btn-toolbar { display: flex; gap: 10px; margin-bottom: 20px; }
+
         /* 编辑器工具栏 */
-        .editor-toolbar { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; background: #f5f5f5; padding: 5px; border-radius: 6px; }
-        .editor-btn { background: #fff; border: 1px solid #ddd; padding: 4px 8px; cursor: pointer; font-size: 12px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
-        .editor-btn:hover { color: var(--primary-color); border-color: var(--primary-color); }
+        .editor-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; background: #f1f5f9; padding: 8px; border-radius: 8px; }
+        .editor-btn { background: #fff; border: 1px solid #cbd5e1; padding: 5px 10px; cursor: pointer; font-size: 12px; border-radius: 4px; display: flex; align-items: center; gap: 5px; color: #475569; }
+        .editor-btn:hover { color: #3b82f6; border-color: #3b82f6; }
+
+        /* --- 手机端响应式 --- */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); } /* 默认隐藏 */
+            .sidebar.show { transform: translateX(0); } /* 激活显示 */
+            .main-content { margin-left: 0; padding: 15px; }
+            .top-bar { display: flex; } /* 显示顶部菜单栏 */
+            
+            /* 遮罩层 (侧边栏打开时) */
+            .sidebar-overlay {
+                display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5); z-index: 999;
+            }
+            .sidebar-overlay.show { display: block; }
+        }
     </style>
 </head>
 <body>
 
-<div class="admin-layout">
-    <aside class="sidebar">
-        <div class="sidebar-header">UMI Admin</div>
-        <div class="nav-menu">
-            <div class="nav-item active" onclick="switchPanel('setting')"><i class="fa-solid fa-sliders"></i> 基础设置</div>
-            <div class="nav-item" onclick="switchPanel('user')"><i class="fa-solid fa-users"></i> 用户管理</div>
-            <div class="nav-item" onclick="switchPanel('post')"><i class="fa-solid fa-file-pen"></i> 文章管理</div>
-            <div class="nav-item" onclick="switchPanel('comment')"><i class="fa-solid fa-comments"></i> 评论管理</div>
-            <div class="nav-item" onclick="location.href='/'"><i class="fa-solid fa-arrow-right-from-bracket"></i> 返回前台</div>
-        </div>
-    </aside>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-    <main class="main-content">
-        <div id="panel-setting" class="panel active">
-            <h2>基础设置</h2>
-            <form id="settingForm">
-                <div class="form-group"><label>网站名称</label><input type="text" name="siteName" class="form-control"></div>
-                <div class="form-group"><label>App ID</label><input type="text" name="alipayAppId" class="form-control"></div>
-                <button type="submit" class="btn btn-primary">保存</button>
-            </form>
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">UMI Admin</div>
+    <div class="nav-menu">
+        <div class="nav-item active" onclick="switchPanel('setting')"><i class="fa-solid fa-sliders"></i> 基础设置</div>
+        <div class="nav-item" onclick="switchPanel('user')"><i class="fa-solid fa-users"></i> 用户管理</div>
+        <div class="nav-item" onclick="switchPanel('post')"><i class="fa-solid fa-file-pen"></i> 文章管理</div>
+        <div class="nav-item" onclick="switchPanel('comment')"><i class="fa-solid fa-comments"></i> 评论管理</div>
+        <div class="nav-item" onclick="location.href='/'" style="margin-top:20px; border-top:1px solid #334155;"><i class="fa-solid fa-arrow-right-from-bracket"></i> 返回前台</div>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="top-bar">
+        <div class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></div>
+        <div style="font-weight:bold;">后台管理</div>
+        <div style="width:24px;"></div> </div>
+
+    <div id="panel-setting" class="panel active">
+        <h2>系统设置</h2>
+        <form id="settingForm">
+            <div class="form-group"><label>网站名称</label><input type="text" name="siteName" class="form-control" placeholder="请输入网站标题"></div>
+            <div class="form-group"><label>支付宝 AppID (当面付)</label><input type="text" name="alipayAppId" class="form-control"></div>
+            <div class="form-group"><label>私钥 (Private Key)</label><textarea name="privateKey" class="form-control" style="height:80px;"></textarea></div>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> 保存设置</button>
+        </form>
+    </div>
+
+    <div id="panel-user" class="panel">
+        <h2>用户管理</h2>
+        <div class="btn-toolbar">
+            <button class="btn btn-success" onclick="document.getElementById('addUserBox').style.display='block'"><i class="fa-solid fa-user-plus"></i> 新增用户</button>
         </div>
-        <div id="panel-user" class="panel">
-            <h2>用户列表</h2>
-            <button class="btn btn-success" onclick="document.getElementById('addUserBox').style.display='block'">+ 新增用户</button>
-            <div id="addUserBox" style="display:none; margin:10px 0; padding:10px; border:1px solid #ddd;">
-                <input id="uName" placeholder="用户名" style="margin-right:5px;"><input id="uPass" placeholder="密码"><button onclick="addUser()">确认</button>
+        <div id="addUserBox" style="display:none; background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0;">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <input id="uName" class="form-control" placeholder="用户名" style="flex:1; min-width:120px;">
+                <input id="uPass" class="form-control" placeholder="密码" style="flex:1; min-width:120px;">
+                <button class="btn btn-primary" onclick="addUser()">确认添加</button>
             </div>
-            <table><thead><tr><th>ID</th><th>账号</th><th>QQ</th><th>角色</th><th>操作</th></tr></thead><tbody id="userTable"></tbody></table>
         </div>
-        <div id="panel-post" class="panel">
-            <h2>文章管理</h2>
-            <button class="btn btn-primary" onclick="showEditor()">+ 发布文章</button>
-            <div id="postListView"><table><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>操作</th></tr></thead><tbody id="postTable"></tbody></table></div>
-            
-            <div id="postEditor" style="display:none;">
-                <h3>编辑文章</h3>
-                <form id="postForm">
-                    <input type="hidden" name="id">
-                    <div class="form-group"><label>标题</label><input type="text" name="title" class="form-control" required></div>
-                    <div class="form-group"><label>别名</label><input type="text" name="slug" class="form-control" required></div>
-                    <div class="form-group"><label>价格</label><input type="number" name="price" class="form-control" value="0"></div>
-                    <div class="form-group"><label>权限</label>
+        <div class="table-responsive">
+            <table><thead><tr><th>ID</th><th>头像/账号</th><th>QQ</th><th>角色</th><th>操作</th></tr></thead><tbody id="userTable"></tbody></table>
+        </div>
+    </div>
+
+    <div id="panel-post" class="panel">
+        <h2>文章管理</h2>
+        <div id="postListView">
+            <div class="btn-toolbar">
+                <button class="btn btn-primary" onclick="showEditor()"><i class="fa-solid fa-pen-to-square"></i> 发布新文章</button>
+            </div>
+            <div class="table-responsive">
+                <table><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>价格</th><th>操作</th></tr></thead><tbody id="postTable"></tbody></table>
+            </div>
+        </div>
+        
+        <div id="postEditor" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">编辑文章</h3>
+                <button class="btn btn-danger" onclick="hideEditor()" style="padding:5px 10px;">返回列表</button>
+            </div>
+            <form id="postForm">
+                <input type="hidden" name="id">
+                <div class="form-group"><label>文章标题</label><input type="text" name="title" class="form-control" required></div>
+                <div class="form-group"><label>URL别名 (Slug)</label><input type="text" name="slug" class="form-control" required placeholder="例如: hello-world"></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                    <div class="form-group"><label>价格 (元)</label><input type="number" name="price" class="form-control" value="0"></div>
+                    <div class="form-group"><label>浏览权限</label>
                         <select name="view_permission" class="form-control">
-                            <option value="0">全员</option><option value="1">VIP</option><option value="2">SVIP</option>
+                            <option value="0">全员免费</option><option value="1">VIP会员</option><option value="2">SVIP会员</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>内容</label>
-                        <div class="editor-toolbar">
-                            <div class="editor-btn" onclick="insertCode('[vip]', '[/vip]')"><i class="fa-solid fa-lock"></i> VIP</div>
-                            <div class="editor-btn" onclick="insertCode('[svip]', '[/svip]')"><i class="fa-solid fa-crown"></i> SVIP</div>
-                            <div class="editor-btn" onclick="insertCode('[pay]', '[/pay]')"><i class="fa-solid fa-coins"></i> 付费</div>
-                            <div class="editor-btn" onclick="insertCode('[reply]', '[/reply]')"><i class="fa-solid fa-comment"></i> 回复可见</div>
-                            <div class="editor-btn" onclick="insertCode('<b>', '</b>')">加粗</div>
-                            <div class="editor-btn" onclick="insertCode('<img src=\'', '\' width=\'100%\'>')">图片</div>
-                        </div>
-                        <textarea name="content" id="postContentArea" class="form-control" style="height:300px;" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>内容编辑</label>
+                    <div class="editor-toolbar">
+                        <div class="editor-btn" onclick="insertCode('[vip]', '[/vip]')"><i class="fa-solid fa-lock"></i> VIP</div>
+                        <div class="editor-btn" onclick="insertCode('[svip]', '[/svip]')"><i class="fa-solid fa-crown"></i> SVIP</div>
+                        <div class="editor-btn" onclick="insertCode('[pay]', '[/pay]')"><i class="fa-solid fa-coins"></i> 付费</div>
+                        <div class="editor-btn" onclick="insertCode('[reply]', '[/reply]')"><i class="fa-solid fa-comment"></i> 回复可见</div>
+                        <div class="editor-btn" onclick="insertCode('<b>', '</b>')">加粗</div>
+                        <div class="editor-btn" onclick="insertCode('<img src=\'', '\' width=\'100%\'>')">图片</div>
+                        <div class="editor-btn" onclick="insertCode('<p>', '</p>')">段落</div>
                     </div>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                    <button type="button" class="btn btn-danger" onclick="hideEditor()">取消</button>
-                </form>
-            </div>
+                    <textarea name="content" id="postContentArea" class="form-control" style="height:400px; font-family:monospace;" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; padding:15px;">保存并发布</button>
+            </form>
         </div>
-        <div id="panel-comment" class="panel">
-            <h2>评论管理</h2>
-            <table><thead><tr><th>用户</th><th>文章</th><th>内容</th><th>操作</th></tr></thead><tbody id="commentTable"></tbody></table>
+    </div>
+
+    <div id="panel-comment" class="panel">
+        <h2>评论管理</h2>
+        <div class="table-responsive">
+            <table><thead><tr><th style="width:100px;">用户</th><th>内容</th><th>操作</th></tr></thead><tbody id="commentTable"></tbody></table>
         </div>
-    </main>
-</div>
+    </div>
+</main>
 
 <script>
     const API = '/api/admin';
     const token = localStorage.getItem('umi_token');
-    if(!token) location.href='/';
     
-    // 工具函数
+    // 初始化检查
+    if(!token) {
+        alert('请先在前台登录管理员账号');
+        location.href='/';
+    }
+
+    // 侧边栏切换 (手机端)
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('show');
+        document.querySelector('.sidebar-overlay').classList.toggle('show');
+    }
+    // 点击菜单项自动收起 (手机端)
+    function closeSidebarOnMobile() {
+        if(window.innerWidth <= 768) toggleSidebar();
+    }
+
+    // 插入代码工具
     function insertCode(start, end) {
         const ta = document.getElementById('postContentArea');
         const s = ta.selectionStart; const e = ta.selectionEnd;
@@ -121,55 +227,104 @@
         ta.focus(); ta.selectionStart = s + start.length; ta.selectionEnd = e + start.length;
     }
 
+    // 面板切换
     function switchPanel(name) {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        
         document.getElementById('panel-'+name).classList.add('active');
+        // 高亮对应菜单
+        const items = document.querySelectorAll('.nav-item');
+        if(name==='setting') items[0].classList.add('active');
+        if(name==='user') items[1].classList.add('active');
+        if(name==='post') items[2].classList.add('active');
+        if(name==='comment') items[3].classList.add('active');
+
+        closeSidebarOnMobile(); // 手机上切换后自动收起侧边栏
+
         if(name==='user') loadUsers();
         if(name==='post') loadPosts();
         if(name==='comment') loadComments();
     }
 
-    // 数据加载逻辑 (简略版，复用之前逻辑)
+    // 1. 用户加载
     async function loadUsers() {
         const res = await fetch(API+'/users', {headers:{'Authorization':`Bearer ${token}`}});
         const d = await res.json();
-        document.getElementById('userTable').innerHTML = d.data.map(u => `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.qq_number}</td><td>${u.role}</td><td>...</td></tr>`).join('');
+        document.getElementById('userTable').innerHTML = d.data.map(u => `
+            <tr>
+                <td>${u.id}</td>
+                <td style="display:flex;align-items:center;gap:5px;">
+                    <img src="http://q.qlogo.cn/headimg_dl?dst_uin=${u.qq_number}&spec=100" style="width:30px;border-radius:50%;">
+                    ${u.username}
+                </td>
+                <td>${u.qq_number}</td>
+                <td>${u.role==='admin'?'<span style="color:red">管理员</span>':'用户'}</td>
+                <td><button class="btn btn-danger" style="padding:2px 8px;font-size:12px;">管理</button></td>
+            </tr>
+        `).join('');
     }
     async function addUser(){
         const u = document.getElementById('uName').value; const p = document.getElementById('uPass').value;
+        if(!u || !p) return alert('请填写完整');
         await fetch(API+'/users/add', {method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})});
-        loadUsers();
+        alert('添加成功'); loadUsers(); document.getElementById('addUserBox').style.display='none';
     }
     
+    // 2. 文章加载
     async function loadPosts() {
         const res = await fetch(API+'/posts', {headers:{'Authorization':`Bearer ${token}`}});
         const d = await res.json();
-        document.getElementById('postTable').innerHTML = d.data.map(p => `<tr><td>${p.id}</td><td>${p.title}</td><td>${p.status}</td><td><button class="btn btn-primary" onclick='editPost(${JSON.stringify(p)})'>编辑</button></td></tr>`).join('');
+        document.getElementById('postTable').innerHTML = d.data.map(p => `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.title}</td>
+                <td><span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;font-size:12px;">${p.status}</span></td>
+                <td>${p.price}</td>
+                <td><button class="btn btn-primary" style="padding:4px 8px;" onclick='editPost(${JSON.stringify(p)})'>编辑</button></td>
+            </tr>
+        `).join('');
         document.getElementById('postListView').style.display='block'; document.getElementById('postEditor').style.display='none';
     }
     function editPost(p){ 
         document.getElementById('postListView').style.display='none'; document.getElementById('postEditor').style.display='block';
         const f=document.getElementById('postForm');
         f.id.value=p.id; f.title.value=p.title; f.slug.value=p.slug; f.price.value=p.price; f.content.value=p.content;
+        f.view_permission.value = p.view_permission;
+    }
+    function showEditor(){
+        document.getElementById('postListView').style.display='none'; document.getElementById('postEditor').style.display='block';
+        document.getElementById('postForm').reset(); document.querySelector('[name=id]').value='';
     }
     function hideEditor(){ document.getElementById('postListView').style.display='block'; document.getElementById('postEditor').style.display='none'; }
     document.getElementById('postForm').onsubmit = async(e)=>{
         e.preventDefault();
         const d = Object.fromEntries(new FormData(e.target));
         await fetch(API+'/posts/save', {method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify(d)});
-        alert('保存成功'); hideEditor(); loadPosts();
-    }
+        alert('发布成功！'); hideEditor(); loadPosts();
+    };
 
+    // 3. 评论加载
     async function loadComments() {
         const res = await fetch(API+'/comments', {headers:{'Authorization':`Bearer ${token}`}});
         const d = await res.json();
-        document.getElementById('commentTable').innerHTML = d.data.map(c => `<tr><td>${c.username}</td><td>${c.title}</td><td>${c.content}</td><td><button class="btn btn-danger" onclick="delCom(${c.id})">删除</button></td></tr>`).join('');
+        document.getElementById('commentTable').innerHTML = d.data.map(c => `
+            <tr>
+                <td>${c.username}</td>
+                <td style="font-size:13px;color:#666;">${c.content}</td>
+                <td><button class="btn btn-danger" style="padding:2px 6px;" onclick="delCom(${c.id})">删</button></td>
+            </tr>
+        `).join('');
     }
     async function delCom(id){
-        await fetch(API+'/comments/delete', {method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify({id})});
-        loadComments();
+        if(confirm('确认删除?')) {
+            await fetch(API+'/comments/delete', {method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify({id})});
+            loadComments();
+        }
     }
+    
+    // 默认加载设置
+    switchPanel('setting');
 </script>
 </body>
 </html>
