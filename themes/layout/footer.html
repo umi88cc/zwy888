@@ -1,0 +1,44 @@
+    </main>
+
+    <div style="margin-top:auto;">
+        <div style="height:4px; background:linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);"></div>
+        <footer style="background:#2b2d42; color:#fff; text-align:center; padding:30px 20px; font-size:0.9rem;">
+            <p>&copy; 2026 UMI88.CC 优米博客</p>
+        </footer>
+    </div>
+
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeModal('authModal')">×</button>
+            <div class="tab-header">
+                <span class="active" onclick="switchTab('login')">登录</span>
+                <span onclick="switchTab('register')">注册</span>
+            </div>
+            <form id="loginForm" class="auth-form active">
+                <input type="text" name="username" placeholder="账号" required class="form-input">
+                <input type="password" name="password" placeholder="密码" required class="form-input">
+                <div class="captcha-box">
+                    <input type="text" name="captchaAnswer" placeholder="计算?" required style="width:80px;">
+                    <span id="loginCaptchaQuestion" style="color:#ff6b6b; font-weight:bold;">...</span>
+                    <input type="hidden" name="captchaKey" id="loginCaptchaKey">
+                </div>
+                <button type="submit" class="auth-btn">立即登录</button>
+            </form>
+            <form id="registerForm" class="auth-form">
+                <input type="text" name="username" placeholder="设置账号" required class="form-input">
+                <input type="password" name="password" placeholder="设置密码" required class="form-input">
+                <input type="number" name="qq" placeholder="QQ号 (用于头像)" required class="form-input qq-input">
+                <div class="captcha-box">
+                    <input type="text" name="captchaAnswer" placeholder="计算?" required style="width:80px;">
+                    <span id="regCaptchaQuestion" style="color:#ff6b6b; font-weight:bold;">...</span>
+                    <input type="hidden" name="captchaKey" id="regCaptchaKey">
+                </div>
+                <button type="submit" class="auth-btn" style="background:#54a0ff;">立即注册</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/auth/auth.js"></script>
+    {{page_js}}
+</body>
+</html>
