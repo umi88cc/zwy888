@@ -1,15 +1,13 @@
 /**
 * 优米博客 - 专注网络优质资源分享！
 * @永久网址 [WWW.UMI88.CC]
-* @联系扣扣 [主446099815][副228522198]
-* @ 加群交流[唯一官方QQ群:13936509]
-* @todo [前端核心逻辑 - 含个人中心与管理员入口]
+* @todo [前端核心逻辑 - 已修复验证码自动刷新问题]
 */
 
 const API_BASE = 'https://umi88.cc/api'; // 替换为你的真实域名
 
 // --- 全局变量 ---
-let pollTimer = null; // 轮询定时器
+let pollTimer = null; 
 
 // --- 1. 弹窗与个人中心逻辑 ---
 const userBtn = document.getElementById('userBtn');
@@ -23,31 +21,28 @@ if(userBtn) {
         const userStr = localStorage.getItem('umi_user');
         
         if(token && userStr) {
-            // 已登录 -> 显示个人中心 (复用 Auth 弹窗容器)
             showUserCenter(JSON.parse(userStr));
         } else {
-            // 未登录 -> 显示登录框
             openModal('auth');
         }
     });
 }
 
-// 动态渲染个人中心 (隐形后台入口在这里)
+// 动态渲染个人中心
 function showUserCenter(user) {
     const modal = document.getElementById('authModal');
     const card = modal.querySelector('.modal-card');
     
-    // 备份原始 HTML (用于注销后恢复登录界面)
+    // 备份原始 HTML
     if(!window.authHtmlBackup) window.authHtmlBackup = card.innerHTML;
     
-    // 判断是否为管理员
+    // 判断管理员
     const adminBtnHtml = (user.role === 'admin') 
         ? `<a href="/admin.html" class="submit-btn" style="display:block; text-align:center; background:#333; margin-top:10px; text-decoration:none;">
              <i class="fa-solid fa-gear"></i> 进入后台管理
            </a>` 
         : '';
 
-    // 动态生成个人中心界面
     card.innerHTML = `
         <button class="close-btn" onclick="closeModal('authModal')">×</button>
         <div style="text-align:center; padding:10px;">
@@ -64,7 +59,9 @@ function showUserCenter(user) {
                 <button class="submit-btn" style="background:#54a0ff;" onclick="alert('请联系站长充值')">开通会员</button>
             </div>
             
-            ${adminBtnHtml} <button onclick="logout()" style="width:100%; padding:10px; margin-top:15px; background:none; border:1px solid #ddd; border-radius:8px; cursor:pointer; color:#666;">
+            ${adminBtnHtml}
+
+            <button onclick="logout()" style="width:100%; padding:10px; margin-top:15px; background:none; border:1px solid #ddd; border-radius:8px; cursor:pointer; color:#666;">
                 退出登录
             </button>
         </div>
@@ -84,11 +81,9 @@ function logout() {
         localStorage.removeItem('umi_token');
         localStorage.removeItem('umi_user');
         
-        // 恢复登录界面的 HTML
         const modal = document.getElementById('authModal');
         if(window.authHtmlBackup) {
             modal.querySelector('.modal-card').innerHTML = window.authHtmlBackup;
-            // 重新绑定事件监听器可能比较麻烦，直接刷新页面最简单
         }
         location.reload();
     }
@@ -97,31 +92,31 @@ function logout() {
 // --- 通用弹窗控制 ---
 function openModal(type) {
     if(type === 'auth') {
-        // 如果之前被替换成了个人中心，先恢复
         if(window.authHtmlBackup) {
             document.querySelector('#authModal .modal-card').innerHTML = window.authHtmlBackup;
         }
         authModal.style.display = 'flex';
-        // 重新绑定一下 Tab 切换事件 (防止 innerHTML 替换后失效)
         bindAuthEvents();
-        loadCaptcha('login');
+        
+        // 打开时默认加载登录验证码
+        // 如果当前是注册Tab，就加载注册验证码
+        const isRegisterActive = document.querySelector('#registerForm').classList.contains('active');
+        loadCaptcha(isRegisterActive ? 'register' : 'login');
     }
 }
 
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
     if(modalId === 'payModal') {
-        clearInterval(pollTimer); // 关闭支付窗时停止轮询
+        clearInterval(pollTimer);
     }
 }
 
-// 绑定关闭按钮事件 (使用事件委托，适应动态生成的元素)
 document.addEventListener('click', (e) => {
     if(e.target.classList.contains('close-btn')) {
         const modal = e.target.closest('.modal-overlay');
         if(modal) closeModal(modal.id);
     }
-    // 点击遮罩层关闭
     if(e.target.classList.contains('modal-overlay')) {
         closeModal(e.target.id);
     }
@@ -129,7 +124,6 @@ document.addEventListener('click', (e) => {
 
 // --- 2. 验证码与鉴权逻辑 ---
 
-// 重新绑定登录/注册表单事件 (用于 HTML 恢复后)
 function bindAuthEvents() {
     document.querySelectorAll('.tab-header span').forEach(span => {
         span.onclick = function() {
@@ -153,6 +147,7 @@ function switchTab(tab) {
     const index = tab === 'login' ? 0 : 1;
     document.querySelectorAll('.tab-header span')[index].classList.add('active');
     
+    // 切换 Tab 时必须重新加载验证码，因为之前的可能没用了
     loadCaptcha(tab);
 }
 
@@ -189,9 +184,18 @@ async function handleRegister(e) {
         });
         const data = await res.json();
         alert(data.message);
-        if(data.success) switchTab('login');
+        
+        if(data.success) {
+            switchTab('login');
+        } else {
+            // 【重要修复】如果注册失败（如账号已存在），必须刷新验证码
+            // 因为旧的验证码在后端已经被验证过一次并销毁了
+            loadCaptcha('register');
+            document.querySelector('#registerForm input[name="captchaAnswer"]').value = ''; // 清空输入框
+        }
     } catch (e) {
         alert('注册请求失败');
+        loadCaptcha('register'); // 网络错误也刷新
     }
 }
 
@@ -216,20 +220,20 @@ async function handleLogin(e) {
             location.reload(); 
         } else {
             alert(data.message);
+            // 【重要修复】登录失败也要刷新验证码
             loadCaptcha('login');
+            document.querySelector('#loginForm input[name="captchaAnswer"]').value = '';
         }
     } catch (e) {
         alert('登录失败');
+        loadCaptcha('login');
     }
 }
 
 // 页面加载时初始化绑定
 bindAuthEvents();
 
-
 // --- 3. 支付核心逻辑 ---
-
-// 发起订单 (被 post.html 调用)
 async function createOrder(type, itemId) {
     const token = localStorage.getItem('umi_token');
     if(!token) {
@@ -258,11 +262,8 @@ async function createOrder(type, itemId) {
 
         if(data.success) {
             document.getElementById('payAmount').innerText = `¥${data.amount}`;
-            
-            // 生成二维码 (使用第三方API)
             const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(data.payUrl)}`;
             document.getElementById('payQrCode').innerHTML = `<img src="${qrApi}" alt="扫码支付">`;
-            
             startPolling(data.orderNo);
         } else {
             alert(data.message || '订单创建失败');
@@ -276,15 +277,12 @@ async function createOrder(type, itemId) {
     }
 }
 
-// 轮询查单
 function startPolling(orderNo) {
     if(pollTimer) clearInterval(pollTimer);
-    
     pollTimer = setInterval(async () => {
         try {
             const res = await fetch(`${API_BASE}/pay/check/${orderNo}`);
             const data = await res.json();
-            
             if(data.paid) {
                 clearInterval(pollTimer);
                 alert('支付成功！即将解锁内容...');
@@ -296,7 +294,6 @@ function startPolling(orderNo) {
     }, 2000);
 }
 
-// 暴露全局方法
 window.createOrder = createOrder;
 window.closeModal = closeModal;
 window.switchTab = switchTab;
