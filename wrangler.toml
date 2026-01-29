@@ -4,37 +4,28 @@ compatibility_date = "2026-01-28"
 
 # --- 1. 静态资源挂载 ---
 [assets]
-directory = "themes/zwy888"
+directory = "themes"
 binding = "ASSETS"
 
-# --- 2. 路由配置 ---
-[[routes]]
-pattern = "umi88.cc"
-custom_domain = true
-
-[[routes]]
-pattern = "www.umi88.cc"
-custom_domain = true
-
-# --- 3. 数据库绑定 (D1) ---
+# --- 2. 数据库绑定 (D1) ---
 [[d1_databases]]
 binding = "DB"
 database_name = "zwy888"
 database_id = "194ecc7d-9b50-44b8-b4f9-2873913ade0c"
 
-# --- 4. 缓存绑定 (KV) ---
+# --- 3. 缓存绑定 (KV) ---
 [[kv_namespaces]]
 binding = "KV"
 id = "690d2289da634615bcf17c078c23d475"
 
-# --- 5. 图片存储绑定 (R2) ---
+# --- 4. 图片存储绑定 (R2) ---
 [[r2_buckets]]
 binding = "IMG_BUCKET"
 bucket_name = "zwy888"
 
-# --- 6. 环境变量 (修复关键点) ---
+# --- 5. 环境变量 (这里是修复的核心！) ---
 [vars]
 R2_ACCOUNT_ID = "62581a5acbb0f2b76a2c28dd4169f14c"
 ALLOWED_EXTENSIONS = "jpg,jpeg,png,gif,webp"
-# 【新增】必须添加这个密钥，否则无法生成 Token
-JWT_SECRET = "umi88_secure_random_key_2026"
+# 👇👇👇 必须加上下面这一行，否则无法注册！ 👇👇👇
+JWT_SECRET = "umi88_secure_password_key_2026"
