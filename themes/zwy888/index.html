@@ -29,22 +29,22 @@
             <div id="articleList">
                 <div style="text-align:center; padding:50px; color:#999;">Loading...</div>
             </div>
-            
             <div id="pagination" class="pagination"></div>
         </div>
     </main>
 
-    <div class="rainbow-divider"></div>
-    
-    <footer class="footer">
-        <p>&copy; 2026 UMI88.CC 优米博客版权所有</p>
-        <p>
-            备案号：京ICP备88888888号 
-            <span>|</span> 
-            公安网备11010102000000号
-        </p>
-        <p style="font-size:0.8rem; opacity:0.7;">本站所有资源仅供学习交流，请于24小时内删除</p>
-    </footer>
+    <div class="footer-wrapper">
+        <div class="rainbow-divider"></div>
+        <footer class="footer">
+            <p>&copy; 2026 UMI88.CC 优米博客版权所有</p>
+            <p>
+                备案号：京ICP备88888888号 
+                <span>|</span> 
+                公安网备11010102000000号
+            </p>
+            <p style="font-size:0.8rem; opacity:0.7;">本站所有资源仅供学习交流，请于24小时内删除</p>
+        </footer>
+    </div>
 
     <div class="modal-overlay" id="authModal">
         <div class="modal-card">
@@ -74,6 +74,15 @@
                 </div>
                 <button type="submit" class="submit-btn register-btn">立即注册</button>
             </form>
+        </div>
+    </div>
+    <div class="modal-overlay" id="payModal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeModal('payModal')">×</button>
+            <div class="pay-header"><h3><i class="fa-brands fa-alipay alipay-logo"></i> 支付宝当面付</h3></div>
+            <div class="pay-amount" id="payAmount">¥0.00</div>
+            <div class="qr-container" id="payQrCode">Loading...</div>
+            <div class="pay-tip"><p>请使用支付宝扫一扫</p><p>支付成功后页面将自动刷新</p></div>
         </div>
     </div>
 
