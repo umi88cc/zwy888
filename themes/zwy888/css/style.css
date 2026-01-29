@@ -1,5 +1,7 @@
 /*
-* 优米博客 - 样式表
+* 优米博客 - 专注网络优质资源分享！
+* @永久网址 [WWW.UMI88.CC]
+* @todo [样式表 - 含支付弹窗]
 */
 :root {
     --primary-color: #ff6b6b;
@@ -55,7 +57,7 @@ a { text-decoration: none; color: inherit; }
 .rainbow-divider { height: 4px; background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3); margin-top: 20px; }
 .footer { text-align: center; padding: 20px; font-size: 0.8rem; color: #999; background: #333; }
 
-/* 登录弹窗 */
+/* 弹窗通用 (登录/支付) */
 .modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.5); z-index: 999;
@@ -64,6 +66,7 @@ a { text-decoration: none; color: inherit; }
 .modal-card { background: #fff; width: 90%; max-width: 350px; padding: 20px; border-radius: 15px; position: relative; }
 .close-btn { position: absolute; right: 15px; top: 10px; font-size: 24px; border: none; background: none; cursor: pointer; }
 
+/* 登录/注册 Tab */
 .tab-header { display: flex; justify-content: space-around; margin-bottom: 20px; border-bottom: 2px solid #eee; }
 .tab-header span { padding: 10px; cursor: pointer; font-weight: bold; color: #999; }
 .tab-header span.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
@@ -79,3 +82,13 @@ a { text-decoration: none; color: inherit; }
 
 .submit-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--primary-color); color: #fff; font-size: 1rem; cursor: pointer; }
 .register-btn { background: #54a0ff; }
+
+/* 支付弹窗样式 */
+.pay-header { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.pay-amount { font-size: 2rem; color: #ff6b6b; font-weight: bold; margin: 10px 0; }
+.qr-container { 
+    display: flex; justify-content: center; align-items: center; 
+    height: 160px; background: #f9f9f9; border-radius: 8px; margin-bottom: 15px; 
+}
+.pay-tip { text-align: center; font-size: 0.8rem; color: #666; }
+.alipay-logo { color: #027aff; font-size: 1.5rem; margin-right: 5px; vertical-align: middle; }
