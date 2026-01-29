@@ -1,0 +1,23 @@
+name = "umi-blog-zwy888"
+main = "src/worker.js"
+compatibility_date = "2024-01-29"
+
+# 静态资源目录 (前端页面)
+[site]
+bucket = "./" 
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB" 
+database_name = "zwy888"
+database_id = "194ecc7d-9b50-44b8-b4f9-2873913ade0c"
+
+# KV 键值对绑定 (用于缓存、Session、配置)
+[[kv_namespaces]]
+binding = "KV"
+id = "690d2289da634615bcf17c078c23d475"
+
+# 路由配置 (根据你的域名调整)
+# [routes]
+# pattern = "umi88.cc/*"
+# zone_name = "umi88.cc"
