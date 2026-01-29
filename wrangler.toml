@@ -2,8 +2,15 @@ name = "zwy888"
 main = "src/worker.js"
 compatibility_date = "2026-01-30"
 
-# --- 路由配置 (Route) ---
-# 注意：开启 custom_domain = true 时，不要加 /*
+# --- 1. 静态资源挂载 (新功能) ---
+# 这一行告诉 Cloudflare：我的网页文件都在 themes/zwy888 目录里
+# 这样访问网址时，会自动加载 index.html 和 css/style.css
+[assets]
+directory = "themes/zwy888"
+binding = "ASSETS"
+
+# --- 2. 路由配置 (已修复) ---
+# 注意：Custom Domain 模式下，pattern 只能写纯域名，不能带 /*
 [[routes]]
 pattern = "umi88.cc"
 custom_domain = true
@@ -12,23 +19,23 @@ custom_domain = true
 pattern = "www.umi88.cc"
 custom_domain = true
 
-# --- 1. 数据库绑定 (D1) ---
+# --- 3. 数据库绑定 (D1) ---
 [[d1_databases]]
 binding = "DB"
 database_name = "zwy888"
 database_id = "194ecc7d-9b50-44b8-b4f9-2873913ade0c"
 
-# --- 2. 缓存绑定 (KV) ---
+# --- 4. 缓存绑定 (KV) ---
 [[kv_namespaces]]
 binding = "KV"
 id = "690d2289da634615bcf17c078c23d475"
 
-# --- 3. 图片存储绑定 (R2) ---
+# --- 5. 图片存储绑定 (R2) ---
 [[r2_buckets]]
 binding = "IMG_BUCKET"
 bucket_name = "zwy888"
 
-# --- 4. 环境变量 (公开) ---
+# --- 6. 环境变量 ---
 [vars]
 R2_ACCOUNT_ID = "62581a5acbb0f2b76a2c28dd4169f14c"
 ALLOWED_EXTENSIONS = "jpg,jpeg,png,gif,webp"
