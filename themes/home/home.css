@@ -1,0 +1,13 @@
+.post-container { padding: 20px; max-width: 900px; margin: 0 auto; }
+.post-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: var(--card-shadow); margin-bottom: 20px; display: flex; height: 160px; transition: transform 0.2s; }
+.post-card:hover { transform: translateY(-2px); }
+.post-thumb { width: 220px; height: 100%; position: relative; }
+.post-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.post-tag { position: absolute; top: 10px; left: 10px; background: linear-gradient(135deg, #ff6b6b, #ff9f43); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.post-content { flex: 1; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+.post-title { font-size: 1.2rem; font-weight: bold; color: #333; margin-bottom: 8px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.post-excerpt { font-size: 0.9rem; color: #666; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.post-meta { font-size: 0.8rem; color: #999; border-top: 1px solid #f0f0f0; padding-top: 10px; margin-top: auto; display: flex; gap: 15px; }
+.pagination { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
+.page-btn { padding: 5px 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+@media (max-width: 768px) { .post-card { height: 110px; } .post-thumb { width: 120px; } .post-meta { display: none; } }
