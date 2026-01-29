@@ -11,7 +11,7 @@ import { cors } from 'hono/cors';
 import { jwt } from 'hono/jwt';
 import auth from './auth';
 import pay from './pay';
-import admin from './admin'; // <--- 【新增】引入后台模块
+import admin from './admin';
 
 const app = new Hono();
 
@@ -21,22 +21,29 @@ app.use('/*', cors());
 // --- 2. 挂载子模块路由 ---
 app.route('/api/auth', auth);
 app.route('/api/pay', pay);
-
-// 挂载后台模块 (所有 /api/admin/* 请求交给 admin.js 处理)
 app.route('/api/admin', admin);
 
 
 // --- 3. 权限控制中间件 (JWT) ---
+// 关键修复：Hono 新版必须指定 alg: 'HS256'
 
 // 保护用户信息接口
-app.use('/api/user/*', jwt({ secret: (c) => c.env.JWT_SECRET }));
+app.use('/api/user/*', jwt({ 
+  secret: (c) => c.env.JWT_SECRET,
+  alg: 'HS256' 
+}));
 
 // 保护创建订单接口
-app.use('/api/pay/create', jwt({ secret: (c) => c.env.JWT_SECRET }));
+app.use('/api/pay/create', jwt({ 
+  secret: (c) => c.env.JWT_SECRET,
+  alg: 'HS256'
+}));
 
-// 【新增】保护后台接口
-// 只有带了 Token 才能进入 admin.js 里的逻辑，那里还有第二层 verifyAdmin 检查
-app.use('/api/admin/*', jwt({ secret: (c) => c.env.JWT_SECRET }));
+// 保护后台接口
+app.use('/api/admin/*', jwt({ 
+  secret: (c) => c.env.JWT_SECRET,
+  alg: 'HS256'
+}));
 
 
 // --- 4. 核心功能 API ---
@@ -47,7 +54,6 @@ app.post('/api/upload', async (c) => {
   const file = body['file'];
   if (!file) return c.json({ error: '请选择文件' }, 400);
 
-  // 简单命名，实际可改为 UUID
   const fileName = `images/${Date.now()}_${file.name}`;
 
   try {
@@ -104,7 +110,6 @@ app.get('/:category/:id.html', async (c) => {
   const post = await c.env.DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
   if (!post) return c.notFound();
 
-  // 默认按游客渲染 (前端JS可二次刷新)
   const parsedContent = parseShortcodes(post.content, 0, false);
   
   let template = await c.env.ASSETS.fetch(new URL('/post.html', c.req.url));
