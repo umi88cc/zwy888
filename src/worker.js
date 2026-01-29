@@ -8,87 +8,92 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { jwt } from 'hono/jwt';
+import auth from './auth'; // 引入同目录下的 auth.js
 
 const app = new Hono();
 
-// 1. 开启跨域允许 (允许前端从不同域名请求 API)
+// --- 1. 全局中间件 ---
+// 允许跨域 (CORS)
 app.use('/*', cors());
 
-// 2. 首页路由：判断是 API 请求还是 浏览器访问
+// --- 2. 挂载子路由 ---
+// 所有 /api/auth/* 的请求都交给 auth.js 处理
+app.route('/api/auth', auth);
+
+// --- 3. 受保护路由中间件 (JWT) ---
+// 只要是访问 /api/user/* 开头的接口，必须带 Token
+app.use('/api/user/*', async (c, next) => {
+  const jwtMiddleware = jwt({ secret: c.env.JWT_SECRET });
+  return jwtMiddleware(c, next);
+});
+
+
+// --- 4. 主页路由 (前端入口) ---
 app.get('/', async (c) => {
   const url = new URL(c.req.url);
-  
-  // 如果是 API 根路径，返回 JSON
+
+  // 如果请求 API 根目录
   if (url.pathname.startsWith('/api')) {
-    return c.json({ 
-      message: 'Umi Blog API is Running!',
-      version: '1.0.0',
-      time: new Date().toISOString()
-    });
+    return c.json({ status: 'Umi Blog API Running', version: '1.0' });
   }
 
-  // 否则，返回前端 HTML 主页 (暂时返回简单文字，后续对接 themes/zwy888/index.html)
+  // 返回简单的测试HTML (后续替换为 themes/zwy888/index.html)
   return c.html(`
     <!DOCTYPE html>
     <html lang="zh-CN">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>优米博客 - 正在建设中</title>
+      <title>优米博客 - UMI88.CC</title>
       <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f4; }
-        .logo { color: #ff6b6b; font-size: 24px; font-weight: bold; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        .box { border: 1px solid #ddd; padding: 20px; border-radius: 8px; max-width: 400px; margin: 0 auto; }
+        .btn { display: inline-block; margin: 10px; padding: 10px 20px; background: #333; color: #fff; text-decoration: none; border-radius: 4px; }
       </style>
     </head>
     <body>
-      <div class="card">
-        <div class="logo">UMI88.CC</div>
-        <h1>优米博客开发中...</h1>
-        <p>后端 Workers 正常运行</p>
-        <p>数据库 D1 / 缓存 KV / 存储 R2 已挂载</p>
+      <div class="box">
+        <h1>优米博客开发中</h1>
+        <p>Worker 状态: <span style="color:green">运行正常</span></p>
+        <p>数据库: <span style="color:green">已连接</span></p>
+        <hr>
+        <a href="/api/auth/captcha" target="_blank" class="btn">测试验证码API</a>
+        <a href="/api/test-db" target="_blank" class="btn">测试数据库连通性</a>
       </div>
     </body>
     </html>
   `);
 });
 
-// --- API 路由区域 (后续我们会在这里加很多功能) ---
-
-// 3. 简单的测试数据库接口 (检查 D1 是否通了)
+// --- 5. 数据库测试接口 ---
 app.get('/api/test-db', async (c) => {
   try {
-    // 从 D1 数据库查询第一个用户
     const result = await c.env.DB.prepare('SELECT * FROM users LIMIT 1').first();
     return c.json({ 
       success: true, 
-      data: result || '数据库连接成功，但暂无用户数据' 
+      msg: '数据库连接正常', 
+      data: result || '暂无用户(这是正常的)' 
     });
   } catch (e) {
     return c.json({ success: false, error: e.message }, 500);
   }
 });
 
-// 4. 图片上传接口 (R2 核心功能)
+// --- 6. 图片上传接口 (R2) ---
 app.post('/api/upload', async (c) => {
-  // 鉴权检查 (暂时跳过，后续加上 verifyAdmin)
-  
+  // TODO: 这里后续要加上 jwt 验证，只允许管理员上传
   const body = await c.req.parseBody();
-  const file = body['file']; // 前端表单字段名为 file
+  const file = body['file'];
 
   if (!file) {
     return c.json({ error: '请选择文件' }, 400);
   }
 
-  // 生成文件名：自动命名逻辑 (这里简化为时间戳，后续做 001.png 逻辑)
+  // 自动命名: images/时间戳_文件名
   const fileName = `images/${Date.now()}_${file.name}`;
 
   try {
-    // 写入 R2 存储桶
     await c.env.IMG_BUCKET.put(fileName, file);
-    
-    // 返回图片访问链接 (假设你已经把自定义域名绑定到了 R2，或者通过 Worker 代理访问)
-    // 临时使用 Worker 代理路径
     return c.json({ 
       success: true, 
       url: `/images/${fileName}` 
@@ -98,7 +103,7 @@ app.post('/api/upload', async (c) => {
   }
 });
 
-// 5. 图片查看路由 (代理 R2 图片，解决防盗链和域名问题)
+// --- 7. 图片查看代理 (解决R2访问问题) ---
 app.get('/images/*', async (c) => {
   const key = c.req.path.substring(1); // 去掉开头的 /
   const object = await c.env.IMG_BUCKET.get(key);
