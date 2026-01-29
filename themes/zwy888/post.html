@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - 优米博客</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 文章页专用样式 */
+        .post-detail { background: #fff; border-radius: 12px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .post-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .post-header h1 { font-size: 1.8rem; margin-bottom: 10px; color: #333; }
+        .post-info { color: #999; font-size: 0.9rem; }
+        
+        /* 短代码锁样式 */
+        .vip-box, .pay-box { 
+            border: 2px dashed #ddd; padding: 30px; text-align: center; 
+            border-radius: 10px; margin: 20px 0; background: #fafafa; 
+        }
+        .vip-box.locked { border-color: #ff6b6b; color: #ff6b6b; }
+        .pay-box.locked { border-color: #feca57; color: #f39c12; }
+        .unlocked { border-style: solid; border-color: #2ed573; background: #f0fff4; color: #218c74; }
+        
+        .vip-box i, .pay-box i { font-size: 3rem; margin-bottom: 15px; }
+        .btn-lock { 
+            background: #ff6b6b; color: #fff; border: none; padding: 10px 25px; 
+            border-radius: 20px; font-size: 1rem; cursor: pointer; margin-top: 15px; 
+            transition: 0.3s;
+        }
+        .btn-lock:hover { opacity: 0.9; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <a href="/" class="logo">
+            <img src="https://via.placeholder.com/40x40/ff6b6b/ffffff?text=U" alt="LOGO">
+            <span>优米博客</span>
+        </a>
+        <div class="user-action" id="userBtn"><i class="fa-solid fa-user-circle"></i></div>
+    </header>
+
+    <main class="post-container">
+        <article class="post-detail">
+            <div class="post-header">
+                <h1>{{title}}</h1>
+                <div class="post-info">
+                    <span><i class="fa-regular fa-clock"></i> {{date}}</span>
+                    <span style="margin-left:15px"><i class="fa-solid fa-tag"></i> 售价: {{price}}元</span>
+                </div>
+            </div>
+            
+            <div class="post-body" id="postContent">
+                {{content}}
+            </div>
+        </article>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 UMI88.CC</p>
+    </footer>
+
+    <input type="hidden" id="postId" value="{{id}}">
+
+    <script src="/js/main.js"></script>
+    <script>
+        // 简单的购买触发逻辑
+        function buyPost() {
+            // 调用 main.js 里的通用支付函数
+            createOrder('post', document.getElementById('postId').value);
+        }
+        function buyVip() {
+            alert('请在个人中心充值会员');
+        }
+    </script>
+</body>
+</html>
