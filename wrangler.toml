@@ -1,15 +1,15 @@
-name = "umi-blog"
+name = "zwy888"
 main = "src/worker.js"
 compatibility_date = "2026-01-30"
 
 # --- 路由配置 (Route) ---
 # 拦截所有访问 umi88.cc 的请求交给 Worker 处理
 [[routes]]
-pattern = "umi88.cc/*"
+pattern = "umi88.cc"
 custom_domain = true
 
 [[routes]]
-pattern = "www.umi88.cc/*"
+pattern = "www.umi88.cc"
 custom_domain = true
 
 # --- 1. 数据库绑定 (D1) ---
