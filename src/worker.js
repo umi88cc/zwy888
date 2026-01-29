@@ -1,6 +1,5 @@
 /**
 * 优米博客 - 核心 Worker (最终修复版)
-* @功能 [路由组装 | 数据库安装 | 短代码解析 | 静态资源渲染]
 */
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
