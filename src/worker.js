@@ -1,5 +1,5 @@
 /**
-* 优米博客 - 核心 Worker (含模板组装与短代码增强)
+* 优米博客 - 核心 Worker (模块组装 + 短代码 + API)
 */
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -7,32 +7,28 @@ import { jwt } from 'hono/jwt';
 import auth from './auth';
 import pay from './pay';
 import admin from './admin';
-import comments from './comments'; // 新增
+import comments from './comments';
 
 const app = new Hono();
-
 app.use('/*', cors());
 
-// --- 挂载路由 ---
+// 子路由
 app.route('/api/auth', auth);
 app.route('/api/pay', pay);
 app.route('/api/admin', admin);
-app.route('/api/comments', comments); // 新增
+app.route('/api/comments', comments);
 
-// --- JWT 配置 ---
+// JWT 保护
 const jwtConfig = { secret: (c) => c.env.JWT_SECRET, alg: 'HS256' };
 app.use('/api/user/*', jwt(jwtConfig));
 app.use('/api/pay/create', jwt(jwtConfig));
 app.use('/api/admin/*', jwt(jwtConfig));
-// 评论相关：发表、点赞、检查状态需要登录 (可选，如果是GET可能不需要)
+// 评论状态查询可能带Token，这里不做强制拦截，由子路由处理
 app.use('/api/comments/add', jwt(jwtConfig));
 app.use('/api/comments/like', jwt(jwtConfig));
-// status 接口可能带 Token 也可能不带，这里不强制拦截，在 handler 里判断
-// 为了方便，我们在 comments.js 里自己处理 Authorization 头
 
-// --- 模板组装辅助函数 ---
+// --- 页面组装函数 ---
 async function renderPage(c, templateName, data = {}) {
-    // 1. 读取公共头部和底部
     const headerRes = await c.env.ASSETS.fetch(new URL('/header.html', c.req.url));
     const footerRes = await c.env.ASSETS.fetch(new URL('/footer.html', c.req.url));
     const bodyRes = await c.env.ASSETS.fetch(new URL(`/${templateName}`, c.req.url));
@@ -41,19 +37,19 @@ async function renderPage(c, templateName, data = {}) {
     let footer = await footerRes.text();
     let body = await bodyRes.text();
 
-    // 2. 替换头部变量
+    // 替换头部
     header = header.replace('{{page_title}}', data.title || '首页');
 
-    // 3. 替换 Body 变量
+    // 替换主体
     for (const [key, value] of Object.entries(data)) {
         body = body.replaceAll(`{{${key}}}`, value !== undefined ? value : '');
     }
 
-    // 4. 组装
+    // 拼接
     return c.html(header + body + footer);
 }
 
-// --- 短代码解析 (含回复可见逻辑) ---
+// --- 短代码解析 (含 [reply]) ---
 async function parseShortcodes(c, content, userVipLevel = 0, hasBought = false, userId = null, postId = null) {
   if (!content) return '';
 
@@ -75,8 +71,7 @@ async function parseShortcodes(c, content, userVipLevel = 0, hasBought = false, 
     return `<div class="pay-box locked"><i class="fa-solid fa-coins"></i><h3>付费内容</h3><button onclick="buyPost()" class="btn-lock">立即购买</button></div>`;
   });
 
-  // [reply] 回复可见 (需要查库)
-  // 如果有 [reply] 标签，才去查数据库，节省性能
+  // [reply] 回复可见
   if (content.includes('[reply]') && postId) {
       let hasReplied = false;
       if (userId) {
@@ -85,15 +80,15 @@ async function parseShortcodes(c, content, userVipLevel = 0, hasBought = false, 
       }
       
       content = content.replace(/\[reply\]([\s\S]*?)\[\/reply\]/g, (match, inner) => {
-          if (hasReplied) return `<div class="reply-box unlocked"><i class="fa-solid fa-comment-dots"></i> 回复可见内容：${inner}</div>`;
-          return `<div class="reply-box locked"><i class="fa-solid fa-comment-slash"></i><h3>回复可见</h3><p>请在下方评论后刷新页面查看</p><a href="#commentList" class="btn-lock">去评论</a></div>`;
+          if (hasReplied) return `<div class="reply-box unlocked"><i class="fa-solid fa-comment-dots"></i> 回复内容：${inner}</div>`;
+          return `<div class="reply-box locked"><i class="fa-solid fa-comment-slash"></i><h3>回复可见</h3><p>评论后刷新页面查看</p><a href="#commentList" class="btn-lock" style="text-decoration:none">去评论</a></div>`;
       });
   }
 
   return content;
 }
 
-// --- 路由 ---
+// --- 路由处理 ---
 
 // 1. 首页
 app.get('/', async (c) => {
@@ -106,19 +101,7 @@ app.get('/:category/:id.html', async (c) => {
   const post = await c.env.DB.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
   if (!post) return c.notFound();
 
-  // 获取用户状态 (尝试解析 Token)
-  let userVip = 0;
-  let hasBought = false;
-  let userId = null;
-  
-  // 简易 Token 解析 (从 Cookie 或 Header) - 为了SSR渲染
-  // 这里简化：Worker SSR 很难直接读 LocalStorage 的 Token，通常需要 Cookie。
-  // 妥协方案：默认渲染“未解锁”，前端 JS 检测到 Token 后再异步请求“获取全文接口”或者刷新。
-  // **为了支持回复可见的 SSR，建议结合前端 main.js 的二次渲染，或者这里不做处理，全部由前端 main.js 替换内容。**
-  // 但为了SEO，我们尽量在后端处理。由于目前架构是 Token 存 LocalStorage，后端拿不到。
-  // 方案：默认显示锁。用户登录后，main.js 发送带 Token 的请求获取“完整HTML片段”替换 body。
-  // 暂时按“游客”渲染。
-  
+  // 默认渲染未解锁状态 (前端 Token 登录后二次获取解锁)
   const content = await parseShortcodes(c, post.content, 0, false, null, id);
 
   return renderPage(c, 'post.html', {
@@ -131,29 +114,49 @@ app.get('/:category/:id.html', async (c) => {
   });
 });
 
-// 3. 登录后获取完整文章内容 (用于解锁)
+// 3. 登录后获取完整文章内容 (解锁接口)
 app.get('/api/posts/content/:id', jwt(jwtConfig), async (c) => {
     const user = c.get('jwtPayload');
     const id = c.req.param('id');
     const post = await c.env.DB.prepare('SELECT * FROM posts WHERE id=?').bind(id).first();
     
-    // 检查购买
     let hasBought = false;
     if (post.price > 0) {
         const order = await c.env.DB.prepare('SELECT id FROM orders WHERE user_id=? AND related_id=? AND status="paid"').bind(user.sub, id).first();
         if (order) hasBought = true;
     }
     
-    // 重新解析
     const content = await parseShortcodes(c, post.content, user.vip_level, hasBought, user.sub, id);
     return c.json({ success: true, content });
 });
 
-// 其他 API (上传、列表) 保持不变，请复制之前的代码...
-// (为节省篇幅，这里假设你保留了之前的 upload, posts/list 等接口)
-// 请务必把之前的 API 逻辑也粘在这里！
+// 4. 文章列表API
+app.get('/api/posts/list', async (c) => {
+  const page = parseInt(c.req.query('page') || '1');
+  const limit = parseInt(c.req.query('limit') || '10');
+  const offset = (page - 1) * limit;
+  const { results } = await c.env.DB.prepare(`SELECT id, title, slug, thumbnail_url, content, price, view_permission, created_at FROM posts WHERE status = 'published' ORDER BY id DESC LIMIT ? OFFSET ?`).bind(limit, offset).all();
+  const total = await c.env.DB.prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'published'").first();
+  const posts = results.map(p => {
+    const plainText = p.content ? p.content.replace(/<[^>]+>/g, '').substring(0, 100) + '...' : '';
+    return { ...p, excerpt: plainText, content: undefined }; 
+  });
+  return c.json({ success: true, data: posts, total: total.count, page, totalPages: Math.ceil(total.count / limit) });
+});
 
-// 静态资源兜底
+// 5. 上传
+app.post('/api/upload', async (c) => {
+  const body = await c.req.parseBody(); const file = body['file']; if (!file) return c.json({ error: 'No file' }, 400);
+  const fileName = `images/${Date.now()}_${file.name}`;
+  await c.env.IMG_BUCKET.put(fileName, file);
+  return c.json({ success: true, url: `/images/${fileName}` });
+});
+
+app.get('/images/*', async (c) => {
+  const key = c.req.path.substring(1); const object = await c.env.IMG_BUCKET.get(key); if (!object) return c.text('404', 404);
+  const h = new Headers(); object.writeHttpMetadata(h); h.set('etag', object.httpEtag); return new Response(object.body, { headers: h });
+});
+
 app.get('/*', async (c) => { return c.env.ASSETS.fetch(c.req.raw); });
 
 export default app;
