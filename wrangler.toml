@@ -2,15 +2,12 @@ name = "zwy888"
 main = "src/worker.js"
 compatibility_date = "2026-01-28"
 
-# --- 1. 静态资源挂载 (新功能) ---
-# 这一行告诉 Cloudflare：我的网页文件都在 themes/zwy888 目录里
-# 这样访问网址时，会自动加载 index.html 和 css/style.css
+# --- 1. 静态资源挂载 ---
 [assets]
-directory = "themes"
+directory = "themes/zwy888"
 binding = "ASSETS"
 
-# --- 2. 路由配置 (已修复) ---
-# 注意：Custom Domain 模式下，pattern 只能写纯域名，不能带 /*
+# --- 2. 路由配置 ---
 [[routes]]
 pattern = "umi88.cc"
 custom_domain = true
@@ -35,7 +32,9 @@ id = "690d2289da634615bcf17c078c23d475"
 binding = "IMG_BUCKET"
 bucket_name = "zwy888"
 
-# --- 6. 环境变量 ---
+# --- 6. 环境变量 (修复关键点) ---
 [vars]
 R2_ACCOUNT_ID = "62581a5acbb0f2b76a2c28dd4169f14c"
 ALLOWED_EXTENSIONS = "jpg,jpeg,png,gif,webp"
+# 【新增】必须添加这个密钥，否则无法生成 Token
+JWT_SECRET = "umi88_secure_random_key_2026"
