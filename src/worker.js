@@ -25,7 +25,7 @@ app.route('/api/admin', admin);
 
 
 // --- 3. 权限控制中间件 (JWT) ---
-// 关键修复：Hono 新版必须指定 alg: 'HS256'
+// 【关键修复】：必须添加 alg: 'HS256'，否则会报错 10021
 
 // 保护用户信息接口
 app.use('/api/user/*', jwt({ 
