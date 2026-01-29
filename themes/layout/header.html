@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page_title}} - 优米博客</title>
+    <link rel="stylesheet" href="/base/global.css">
+    <link rel="stylesheet" href="/auth/auth.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {{page_css}}
+</head>
+<body>
+    <header class="navbar" style="background:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.05); position:sticky; top:0; z-index:100;">
+        <a href="/" class="logo" style="font-weight:800; font-size:1.3rem; color:#2c3e50; display:flex; align-items:center;">
+            <i class="fa-solid fa-wheat-awn" style="color:#ff6b6b; margin-right:8px;"></i>
+            <span>优米博客</span>
+        </a>
+        <div class="user-action" id="userBtn" style="cursor:pointer;">
+            <i class="fa-solid fa-user-circle" style="font-size:1.5rem; color:#666;"></i>
+        </div>
+    </header>
+
+    <nav class="menu-container" id="menuContainer" style="background:#fff; padding:10px 20px; display:flex; gap:10px; overflow-x:auto; border-top:1px solid #f0f0f0;">
+        <a href="/" class="menu-item"><i class="fa-solid fa-house" style="color:#ff6b6b"></i> 首页</a>
+        <a href="/category/tech.html" class="menu-item"><i class="fa-solid fa-code" style="color:#54a0ff"></i> 技术</a>
+        <a href="/category/resource.html" class="menu-item"><i class="fa-solid fa-download" style="color:#2ed573"></i> 资源</a>
+        <a href="/about.html" class="menu-item"><i class="fa-solid fa-user-tie" style="color:#a55eea"></i> 关于</a>
+    </nav>
+
+    <main style="flex:1; width:100%; padding-bottom:40px;">
