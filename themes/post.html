@@ -11,7 +11,6 @@
         .post-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
         .post-header h1 { font-size: 1.8rem; margin-bottom: 10px; color: #333; }
         .post-info { color: #999; font-size: 0.9rem; }
-        
         .vip-box, .pay-box { border: 2px dashed #ddd; padding: 30px; text-align: center; border-radius: 10px; margin: 20px 0; background: #fafafa; }
         .vip-box.locked { border-color: #ff6b6b; color: #ff6b6b; }
         .pay-box.locked { border-color: #feca57; color: #f39c12; }
@@ -25,11 +24,29 @@
 
     <header class="navbar">
         <a href="/" class="logo">
-            <img src="https://via.placeholder.com/40x40/ff6b6b/ffffff?text=U" alt="LOGO">
+            <i class="fa-solid fa-wheat-awn"></i>
             <span>优米博客</span>
         </a>
         <div class="user-action" id="userBtn"><i class="fa-solid fa-user-circle"></i></div>
     </header>
+
+    <nav class="menu-container">
+        <a href="https://umi88.cc" class="menu-item">
+            <i class="fa-solid fa-house"></i> 网站首页
+        </a>
+        <a href="/category/tech.html" class="menu-item">
+            <i class="fa-solid fa-code"></i> 网络技术
+        </a>
+        <a href="/category/resource.html" class="menu-item">
+            <i class="fa-solid fa-download"></i> 资源下载
+        </a>
+        <a href="https://pan.umi88.cc" target="_blank" class="menu-item">
+            <i class="fa-solid fa-cloud"></i> 优米网盘
+        </a>
+        <a href="/about.html" class="menu-item">
+            <i class="fa-solid fa-user-tie"></i> 关于站长
+        </a>
+    </nav>
 
     <main class="main-area">
         <div class="post-container">
@@ -46,12 +63,13 @@
         </div>
     </main>
 
-    <div class="rainbow-divider"></div>
-
-    <footer class="footer">
-        <p>&copy; 2026 UMI88.CC 优米博客版权所有</p>
-        <p>备案号：京ICP备88888888号 <span>|</span> 公安网备11010102000000号</p>
-    </footer>
+    <div class="footer-wrapper">
+        <div class="rainbow-divider"></div>
+        <footer class="footer">
+            <p>&copy; 2026 UMI88.CC 优米博客版权所有</p>
+            <p>备案号：京ICP备88888888号 <span>|</span> 公安网备11010102000000号</p>
+        </footer>
+    </div>
 
     <input type="hidden" id="postId" value="{{id}}">
 
