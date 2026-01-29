@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - 优米博客</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .post-detail { background: #fff; border-radius: 12px; padding: 30px; margin-top: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .post-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .post-header h1 { font-size: 1.8rem; margin-bottom: 10px; color: #333; }
+        .post-info { color: #999; font-size: 0.9rem; }
+        
+        .vip-box, .pay-box { border: 2px dashed #ddd; padding: 30px; text-align: center; border-radius: 10px; margin: 20px 0; background: #fafafa; }
+        .vip-box.locked { border-color: #ff6b6b; color: #ff6b6b; }
+        .pay-box.locked { border-color: #feca57; color: #f39c12; }
+        .unlocked { border-style: solid; border-color: #2ed573; background: #f0fff4; color: #218c74; }
+        .vip-box i, .pay-box i { font-size: 3rem; margin-bottom: 15px; }
+        .btn-lock { background: #ff6b6b; color: #fff; border: none; padding: 10px 25px; border-radius: 20px; font-size: 1rem; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+        .btn-lock:hover { opacity: 0.9; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <a href="/" class="logo">
+            <img src="https://via.placeholder.com/40x40/ff6b6b/ffffff?text=U" alt="LOGO">
+            <span>优米博客</span>
+        </a>
+        <div class="user-action" id="userBtn"><i class="fa-solid fa-user-circle"></i></div>
+    </header>
+
+    <main class="main-area">
+        <div class="post-container">
+            <article class="post-detail">
+                <div class="post-header">
+                    <h1>{{title}}</h1>
+                    <div class="post-info">
+                        <span><i class="fa-regular fa-clock"></i> {{date}}</span>
+                        <span style="margin-left:15px"><i class="fa-solid fa-tag"></i> 售价: {{price}}元</span>
+                    </div>
+                </div>
+                <div class="post-body" id="postContent">{{content}}</div>
+            </article>
+        </div>
+    </main>
+
+    <div class="rainbow-divider"></div>
+
+    <footer class="footer">
+        <p>&copy; 2026 UMI88.CC 优米博客版权所有</p>
+        <p>备案号：京ICP备88888888号 <span>|</span> 公安网备11010102000000号</p>
+    </footer>
+
+    <input type="hidden" id="postId" value="{{id}}">
+
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeModal('authModal')">×</button>
+            <div class="tab-header"><span class="active" onclick="switchTab('login')">登录</span><span onclick="switchTab('register')">注册</span></div>
+            <form id="loginForm" class="auth-form active">
+                <div class="input-group"><i class="fa-solid fa-user"></i><input type="text" name="username" placeholder="请输入账号" required></div>
+                <div class="input-group"><i class="fa-solid fa-lock"></i><input type="password" name="password" placeholder="请输入密码" required></div>
+                <div class="input-group captcha-group"><input type="text" name="captchaAnswer" placeholder="计算结果?" required><span id="loginCaptchaQuestion" class="captcha-text">...</span><input type="hidden" name="captchaKey" id="loginCaptchaKey"></div>
+                <button type="submit" class="submit-btn">立即登录</button>
+            </form>
+            <form id="registerForm" class="auth-form">
+                <div class="input-group"><i class="fa-solid fa-user"></i><input type="text" name="username" placeholder="设置账号" required></div>
+                <div class="input-group"><i class="fa-solid fa-lock"></i><input type="password" name="password" placeholder="设置密码" required></div>
+                <div class="input-group"><i class="fa-brands fa-qq"></i><input type="number" name="qq" placeholder="QQ号" required></div>
+                <div class="input-group captcha-group"><input type="text" name="captchaAnswer" placeholder="计算结果?" required><span id="regCaptchaQuestion" class="captcha-text">...</span><input type="hidden" name="captchaKey" id="regCaptchaKey"></div>
+                <button type="submit" class="submit-btn register-btn">立即注册</button>
+            </form>
+        </div>
+    </div>
+    <div class="modal-overlay" id="payModal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeModal('payModal')">×</button>
+            <div class="pay-header"><h3><i class="fa-brands fa-alipay alipay-logo"></i> 支付宝当面付</h3></div>
+            <div class="pay-amount" id="payAmount">¥0.00</div>
+            <div class="qr-container" id="payQrCode">Loading...</div>
+            <div class="pay-tip"><p>请使用支付宝扫一扫</p><p>支付成功后页面将自动刷新</p></div>
+        </div>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        function buyPost() { const id = document.getElementById('postId').value; window.createOrder('post', id); }
+        function buyVip() { window.createOrder('vip_month', 0); }
+    </script>
+</body>
+</html>
