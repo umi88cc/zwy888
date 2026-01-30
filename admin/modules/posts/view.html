@@ -1,31 +1,190 @@
 <div class="module-posts">
-    <div class="toolbar">
-        <h2>文章管理</h2>
-        <button class="btn btn-primary" onclick="PostModule.edit()">+ 新文章</button>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #eee;">
+        <h2 style="margin:0;">文章管理</h2>
+        <button class="btn btn-primary" onclick="PostModule.openEditor()">+ 发布新文章</button>
     </div>
-    <div class="table-box">
-        <table>
-            <thead><tr><th>ID</th><th>标题</th><th>状态</th><th>操作</th></tr></thead>
-            <tbody id="postTableBody"></tbody>
-        </table>
+
+    <div id="postListView">
+        <div class="table-responsive">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f9fafb; text-align:left;">
+                        <th style="padding:12px;">ID</th>
+                        <th style="padding:12px;">标题</th>
+                        <th style="padding:12px;">状态</th>
+                        <th style="padding:12px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="postTableBody">
+                    <tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">正在加载数据...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
+
+    <div id="postEditorView" style="display:none;">
+        <button class="btn btn-danger" onclick="PostModule.closeEditor()" style="margin-bottom:15px;">&larr; 返回列表</button>
+        
+        <form id="postForm" style="background:#f8f9fa; padding:20px; border-radius:8px;">
+            <input type="hidden" name="id">
+            
+            <div class="form-group" style="margin-bottom:15px;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">文章标题</label>
+                <input type="text" name="title" class="form-control" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;" required placeholder="请输入标题...">
+            </div>
+
+            <div class="form-group" style="margin-bottom:15px;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">URL别名 (Slug)</label>
+                <input type="text" name="slug" class="form-control" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;" placeholder="选填，默认自动生成">
+            </div>
+
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div style="flex:1;">
+                    <label style="display:block; margin-bottom:5px; font-weight:bold;">价格</label>
+                    <input type="number" name="price" value="0" class="form-control" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                </div>
+                <div style="flex:1;">
+                    <label style="display:block; margin-bottom:5px; font-weight:bold;">权限</label>
+                    <select name="view_permission" class="form-control" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                        <option value="0">全员可见</option>
+                        <option value="1">VIP会员</option>
+                        <option value="2">SVIP会员</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">内容</label>
+                <textarea name="content" class="form-control" style="width:100%; height:300px; padding:10px; border:1px solid #ddd; border-radius:4px;" required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:16px;">确认发布</button>
+        </form>
+    </div>
+
 </div>
+
 <script>
-    window.PostModule = {
-        init: async function() {
-            const res = await fetch('/api/admin/modules/posts', { // 调用后端API
+window.PostModule = {
+    // 初始化：加载列表
+    init: async function() {
+        console.log('PostModule Initialized');
+        this.loadList();
+        this.bindForm();
+    },
+
+    // 1. 加载列表数据
+    loadList: async function() {
+        const tbody = document.getElementById('postTableBody');
+        try {
+            // 调用后端 API (注意：这里通过 Worker 转发)
+            const res = await fetch('/api/admin/modules/posts', {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('umi_token')}` }
             });
             const json = await res.json();
-            this.render(json.data);
-        },
-        render: function(list) {
-            document.getElementById('postTableBody').innerHTML = list.map(p => 
-                `<tr><td>${p.id}</td><td>${p.title}</td><td>${p.status}</td><td><button>编辑</button></td></tr>`
-            ).join('');
-        },
-        edit: function() { alert('编辑功能开发中...'); }
-    };
-    // 自动初始化
-    PostModule.init();
+
+            if (json.success) {
+                if(json.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">暂无文章</td></tr>';
+                    return;
+                }
+                // 渲染表格
+                tbody.innerHTML = json.data.map(p => `
+                    <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:10px;">${p.id}</td>
+                        <td style="padding:10px; font-weight:bold;">${p.title}</td>
+                        <td style="padding:10px;"><span style="background:#e6fffa; color:#00b894; padding:2px 6px; border-radius:4px; font-size:12px;">${p.status}</span></td>
+                        <td style="padding:10px;">
+                            <button onclick='PostModule.edit(${JSON.stringify(p)})' style="cursor:pointer; color:blue; background:none; border:none;">编辑</button>
+                            <button onclick='PostModule.del(${p.id})' style="cursor:pointer; color:red; background:none; border:none; margin-left:10px;">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">${json.message}</td></tr>`;
+            }
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">网络请求失败</td></tr>';
+        }
+    },
+
+    // 2. 绑定表单提交
+    bindForm: function() {
+        const form = document.getElementById('postForm');
+        // 解除旧绑定，防止重复提交
+        form.onsubmit = null;
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
+            try {
+                const res = await fetch('/api/admin/modules/posts/save', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('umi_token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    alert('✅ ' + json.message);
+                    this.closeEditor(); // 关闭编辑器
+                    this.loadList();    // 立即刷新列表
+                } else {
+                    alert('❌ ' + json.message);
+                }
+            } catch (e) {
+                alert('网络错误，请检查控制台');
+            }
+        };
+    },
+
+    // 3. 打开编辑器
+    openEditor: function() {
+        document.getElementById('postListView').style.display = 'none';
+        document.getElementById('postEditorView').style.display = 'block';
+        document.getElementById('postForm').reset();
+        document.querySelector('[name=id]').value = '';
+    },
+
+    // 4. 关闭编辑器
+    closeEditor: function() {
+        document.getElementById('postListView').style.display = 'block';
+        document.getElementById('postEditorView').style.display = 'none';
+    },
+
+    // 5. 编辑回显
+    edit: function(p) {
+        this.openEditor();
+        const f = document.getElementById('postForm');
+        f.id.value = p.id;
+        f.title.value = p.title;
+        f.slug.value = p.slug || '';
+        f.price.value = p.price || 0;
+        f.view_permission.value = p.view_permission || 0;
+        f.content.value = p.content || ''; // 注意：这里简单回显，如果是富文本可能需要特殊处理
+    },
+
+    // 6. 删除
+    del: async function(id) {
+        if(!confirm('确定删除这篇文章吗？')) return;
+        await fetch('/api/admin/modules/posts/delete', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('umi_token')}`
+            },
+            body: JSON.stringify({id})
+        });
+        this.loadList();
+    }
+};
+
+// 页面加载完成后自动运行
+setTimeout(() => PostModule.init(), 100); 
 </script>
