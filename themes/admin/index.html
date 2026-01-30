@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理</title>
+    <link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+    <div id="admin-app" style="display:none;">
+        <aside class="sidebar">
+            <div class="logo">UMI Admin</div>
+            <nav>
+                <a onclick="loadModule('posts')">文章管理</a>
+                <a onclick="loadModule('users')">用户管理</a>
+                <a href="/">返回首页</a>
+            </nav>
+        </aside>
+
+        <main>
+            <div id="content-area">欢迎回来，管理员</div>
+        </main>
+    </div>
+
+    <script src="/admin/admin.js"></script>
+</body>
+</html>
