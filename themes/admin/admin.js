@@ -1,74 +1,48 @@
-/**
-* 前端后台入口
-* 路径: themes/admin/admin.js
-*/
-const API_BASE = '/api/admin';
-
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. 立即执行权限检查
-    verifyAdminAccess();
-});
-
-// --- 权限验证 (门卫) ---
-async function verifyAdminAccess() {
-    const token = localStorage.getItem('umi_token');
-    const userStr = localStorage.getItem('umi_user');
-
-    // 本地校验：没登录直接踢
-    if (!token || !userStr) {
-        alert('非法访问：请先登录');
-        window.location.href = '/';
-        return;
-    }
-
-    const user = JSON.parse(userStr);
-    if (user.role !== 'admin') {
-        alert('权限不足：您不是管理员');
-        window.location.href = '/';
-        return;
-    }
-
-    // 服务端校验：尝试连接后台核心
-    try {
-        const res = await fetch(`${API_BASE}/status`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (res.ok) {
-            // 校验通过，显示后台界面
-            document.getElementById('admin-app').style.display = 'flex';
-            console.log('后台连接成功');
-        } else {
-            throw new Error('服务端拒绝');
-        }
-    } catch (e) {
-        alert('会话失效，请重新登录');
-        localStorage.removeItem('umi_token');
-        window.location.href = '/';
-    }
-}
-
-// --- 功能加载器 ---
+// 动态加载受保护的模块
 window.loadModule = async function(moduleName) {
     const token = localStorage.getItem('umi_token');
-    const container = document.getElementById('content-area');
+    const container = document.getElementById('module-container');
     
-    container.innerHTML = '加载中...';
+    container.innerHTML = '正在安全加载模块...';
 
     try {
-        // 请求后端数据
-        const res = await fetch(`${API_BASE}/${moduleName}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const json = await res.json();
-        
-        // 渲染数据 (这里简单展示，你可以扩展成复杂的表格)
-        if (json.success) {
-            container.innerHTML = `<pre>${JSON.stringify(json.data, null, 2)}</pre>`;
-        } else {
-            container.innerHTML = '加载失败: ' + json.message;
+        // 1. 加载受保护的 CSS
+        const cssUrl = `/admin/modules/${moduleName}/style.css`;
+        // 我们不能直接用 <link> 标签，因为浏览器请求不会带 Token，会被防火墙拦截！
+        // 必须用 fetch 带 Token 请求内容，然后注入页面
+        const cssRes = await fetch(cssUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+        if(cssRes.ok) {
+            const cssText = await cssRes.text();
+            const style = document.createElement('style');
+            style.textContent = cssText;
+            style.id = 'module-style';
+            // 清理旧样式
+            const oldStyle = document.getElementById('module-style');
+            if(oldStyle) oldStyle.remove();
+            document.head.appendChild(style);
         }
+
+        // 2. 加载受保护的 HTML
+        const htmlUrl = `/admin/modules/${moduleName}/view.html`;
+        const htmlRes = await fetch(htmlUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+        
+        if (!htmlRes.ok) throw new Error('无法加载模块文件，权限不足');
+        
+        const htmlText = await htmlRes.text();
+        
+        // 3. 渲染 HTML (并执行其中的 script)
+        container.innerHTML = htmlText;
+        
+        // 手动执行 HTML 里的 script 标签 (innerHTML 不会自动执行 script)
+        const scripts = container.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            newScript.textContent = oldScript.textContent;
+            document.body.appendChild(newScript);
+            oldScript.remove(); // 移除原来的
+        });
+
     } catch (e) {
-        container.innerHTML = '请求错误';
+        container.innerHTML = `<div style="color:red; padding:20px;">🛑 加载失败: ${e.message}</div>`;
     }
 }
