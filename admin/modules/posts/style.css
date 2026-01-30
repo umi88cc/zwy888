@@ -1,0 +1,4 @@
+.module-posts .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
+.module-posts table { width: 100%; border-collapse: collapse; }
+.module-posts th { background: #f8fafc; text-align: left; padding: 10px; }
+.module-posts td { padding: 10px; border-bottom: 1px solid #eee; }
