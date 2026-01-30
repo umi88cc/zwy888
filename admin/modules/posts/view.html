@@ -1,0 +1,31 @@
+<div class="module-posts">
+    <div class="toolbar">
+        <h2>文章管理</h2>
+        <button class="btn btn-primary" onclick="PostModule.edit()">+ 新文章</button>
+    </div>
+    <div class="table-box">
+        <table>
+            <thead><tr><th>ID</th><th>标题</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="postTableBody"></tbody>
+        </table>
+    </div>
+</div>
+<script>
+    window.PostModule = {
+        init: async function() {
+            const res = await fetch('/api/admin/modules/posts', { // 调用后端API
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('umi_token')}` }
+            });
+            const json = await res.json();
+            this.render(json.data);
+        },
+        render: function(list) {
+            document.getElementById('postTableBody').innerHTML = list.map(p => 
+                `<tr><td>${p.id}</td><td>${p.title}</td><td>${p.status}</td><td><button>编辑</button></td></tr>`
+            ).join('');
+        },
+        edit: function() { alert('编辑功能开发中...'); }
+    };
+    // 自动初始化
+    PostModule.init();
+</script>
