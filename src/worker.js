@@ -1,47 +1,45 @@
-/**
-* 优米博客 - 主入口 (路径重构版)
-*/
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { jwt } from 'hono/jwt';
 
-// 修改引用路径: 指向 src/js/ 目录
+// 1. 引入根目录下的 admin 后台逻辑
+// 注意：这里使用相对路径跳出 src 目录去引用 admin 目录
+import adminBackend from '../admin/index.js'; 
+
+// 引入其他前台逻辑 (假设你放在 src/js 下)
 import authModule from './js/auth';
-import payModule from './js/pay';
-import adminModule from './js/admin';
-import commentsModule from './js/comments';
-import installModule from './js/install';
-import pagesModule from './js/pages';
-import apisModule from './js/apis';
-import staticModule from './js/static';
 
 const app = new Hono();
-
 app.use('/*', cors());
 const jwtConfig = { secret: (c) => c.env.JWT_SECRET, alg: 'HS256' };
 
-// --- 路由挂载 ---
-app.route('/api/auth', authModule);
-app.route('/api/pay', payModule);
-app.route('/api/admin', adminModule);
-app.route('/api/comments', commentsModule);
+// --- A. 挂载后台逻辑 (核心步骤) ---
+// 只有通过 /api/admin 访问的请求，才会进入 admin/index.js 处理
+app.route('/api/admin', adminBackend);
 
-// 业务 API
-app.use('/api/posts/content/*', jwt(jwtConfig));
-app.route('/api', apisModule); 
-
-// 安装 & 页面
-app.route('/install_umi88_db', installModule);
-app.route('/', pagesModule);
-
-// 权限保护
-app.use('/api/user/*', jwt(jwtConfig));
-app.use('/api/pay/create', jwt(jwtConfig));
+// --- B. 权限保护 ---
+// 强制要求访问 /api/admin/* 必须带 Token
 app.use('/api/admin/*', jwt(jwtConfig));
-app.use('/api/comments/add', jwt(jwtConfig));
-app.use('/api/comments/like', jwt(jwtConfig));
 
-// 静态资源
-app.route('/', staticModule);
+// 鉴权拦截器：额外判断角色是否为 admin
+app.use('/api/admin/*', async (c, next) => {
+    const payload = c.get('jwtPayload');
+    if (payload.role !== 'admin') {
+        return c.json({ error: '权限不足：非管理员' }, 403);
+    }
+    await next();
+});
+
+// --- C. 其他路由 ---
+app.route('/api/auth', authModule);
+
+// --- D. 静态资源托管 (Themes) ---
+// 访问 /admin 时，返回 themes/admin/index.html
+app.get('/admin', async (c) => {
+    return c.env.ASSETS.fetch(new URL('/themes/admin/index.html', c.req.url));
+});
+
+// 兜底：所有其他请求走静态资源 (themes 目录)
+app.get('/*', (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default app;
