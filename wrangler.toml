@@ -2,30 +2,26 @@ name = "zwy888"
 main = "src/worker.js"
 compatibility_date = "2026-01-28"
 
-# --- 1. 静态资源挂载 ---
+# --- 静态资源 (只读 themes) ---
+# 这样设置后，用户只能访问 themes 下的文件
+# 根目录下的 admin/ 代码对于浏览器是"隐形"的
 [assets]
-directory = "themes"
+directory = "./themes"
 binding = "ASSETS"
 
-# --- 2. 数据库绑定 (D1) ---
+# --- 数据库等配置保持不变 ---
 [[d1_databases]]
 binding = "DB"
 database_name = "zwy888"
 database_id = "194ecc7d-9b50-44b8-b4f9-2873913ade0c"
 
-# --- 3. 缓存绑定 (KV) ---
 [[kv_namespaces]]
 binding = "KV"
 id = "690d2289da634615bcf17c078c23d475"
 
-# --- 4. 图片存储绑定 (R2) ---
 [[r2_buckets]]
 binding = "IMG_BUCKET"
 bucket_name = "zwy888"
 
-# --- 5. 环境变量 (这里是修复的核心！) ---
 [vars]
-R2_ACCOUNT_ID = "62581a5acbb0f2b76a2c28dd4169f14c"
-ALLOWED_EXTENSIONS = "jpg,jpeg,png,gif,webp"
-# 👇👇👇 必须加上下面这一行，否则无法注册！ 👇👇👇
 JWT_SECRET = "umi88_secure_password_key_2026"
